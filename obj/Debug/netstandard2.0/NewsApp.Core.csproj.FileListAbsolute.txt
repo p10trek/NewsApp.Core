@@ -1,8 +1,0 @@
-C:\Users\p10tr\source\repos\NewsApp.Core\bin\Debug\netstandard2.0\NewsApp.Core.deps.json
-C:\Users\p10tr\source\repos\NewsApp.Core\bin\Debug\netstandard2.0\NewsApp.Core.dll
-C:\Users\p10tr\source\repos\NewsApp.Core\bin\Debug\netstandard2.0\NewsApp.Core.pdb
-C:\Users\p10tr\source\repos\NewsApp.Core\obj\Debug\netstandard2.0\NewsApp.Core.AssemblyInfoInputs.cache
-C:\Users\p10tr\source\repos\NewsApp.Core\obj\Debug\netstandard2.0\NewsApp.Core.AssemblyInfo.cs
-C:\Users\p10tr\source\repos\NewsApp.Core\obj\Debug\netstandard2.0\NewsApp.Core.csproj.CoreCompileInputs.cache
-C:\Users\p10tr\source\repos\NewsApp.Core\obj\Debug\netstandard2.0\NewsApp.Core.dll
-C:\Users\p10tr\source\repos\NewsApp.Core\obj\Debug\netstandard2.0\NewsApp.Core.pdb
