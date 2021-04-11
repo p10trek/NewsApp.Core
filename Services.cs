@@ -11,7 +11,7 @@ namespace NewsApp.Core
 {
     public class Services : IServices
     {
-        public async Task<IRestResponse> GetNews(IRequestModel requestModel)
+        public IRestResponse GetNews(IRequestModel requestModel)
         {
             string methodName = GenericFactory<RuntimeInfo>
                                 .CreateInstance()
@@ -33,7 +33,7 @@ namespace NewsApp.Core
             request.AddQueryParameter("search", requestModel.Search);
             request.AddQueryParameter("limit", requestModel.Limit.ToString());
 
-            IRestResponse response = await client.ExecuteAsync(request);
+            IRestResponse response = client.Execute(request);
             Debug.WriteLine(response.Content);
             return response;
         }

@@ -10,7 +10,7 @@ namespace NewsApp.Core
         public override void Initialize()
         {
             Mvx.IoCProvider.RegisterType<IServices, Services>();
-            RegisterAppStart<MainViewModel>();
+            RegisterAppStart<AllNewsViewModel>();
         }
     }
 }

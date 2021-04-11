@@ -8,6 +8,6 @@ namespace NewsApp.Core.Interfaces
 {
     public interface IServices
     {
-        Task<IRestResponse> GetNews(IRequestModel requestModel);
+        IRestResponse GetNews(IRequestModel requestModel);
     }
 }
