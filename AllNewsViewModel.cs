@@ -1,20 +1,34 @@
-﻿using MvvmCross.Commands;
+﻿using BCrypt.Net;
+using MvvmCross.Commands;
 using MvvmCross.ViewModels;
 using NewsApp.Core.Interfaces;
 using NewsApp.Core.ResponseModel;
+using Newtonsoft.Json;
 using RestSharp;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.IO;
 using System.Text;
 using System.Threading.Tasks;
-
+using System.Linq;
+using System.Windows;
 namespace NewsApp.Core
 {
     public class AllNewsViewModel : MvxViewModel
     {
         private readonly IServices services;
+        public AllNewsViewModel(IServices services)
+        {
+            this.services = services;
+            ResultPanelVisibility = false;
+            LoginPanelVisibility = true;
 
+
+        }
+
+        #region PROPERTIES
         private string _response;
         public string Response
         {
@@ -136,50 +150,176 @@ namespace NewsApp.Core
                 RaisePropertyChanged(() => Travel);
             }
         }
+        private string _login;
+        public string Login
+        {
+            get => _login;
+            set
+            {
+                _login = value;
+                RaisePropertyChanged(() => Login);
+            }
+        }
+        private string _password;
+        public string Password
+        {
+            get => _password;
+            set
+            {
+                _password = value;
+                RaisePropertyChanged(() => Password);
+            }
+        }
+        private string _token;
+        public string Token
+        {
+            get => _token;
+            set
+            {
+                _token = value;
+                RaisePropertyChanged(() => Token);
+            }
+        }
+        private string _domains;
+        public string Domains
+        {
+            get => _domains;
+            set
+            {
+                _domains = value;
+                RaisePropertyChanged(() => Domains);
+            }
+        }
+        private string _language;
+        public string Language
+        {
+            get => _language;
+            set
+            {
+                _language = value;
+                RaisePropertyChanged(() => Language);
+            }
+        }
+        private DateTime _dateFrom;
+        public DateTime DateFrom
+        {
+            get => _dateFrom;
+            set
+            {
+                _dateFrom = value;
+                RaisePropertyChanged(() => DateFrom);
+            }
+        }
+        //private Visibility _loginPanelVisibility;
+        public bool LoginPanelVisibility
+        {
+            //get => _loginPanelVisibility;
+            set
+            {
+                //_loginPanelVisibility = value;
+                //RaisePropertyChanged(() => LoginPanelVisibility);
+            }
+        }
+        private bool _resultPanelVisibility;
+        public bool ResultPanelVisibility
+        {
+            get => _resultPanelVisibility;
+            set
+            {
+                _resultPanelVisibility = value;
+                RaisePropertyChanged(() => ResultPanelVisibility);
+            }
+        }
+
         public IMvxCommand DoWorkCommand => new MvxCommand(DoWork, () => true);
+        public IMvxCommand SignInCommand => new MvxCommand(SignIn, () => true);
+        #endregion
+
         private void DoWork()
         {
             IRequestModel requestModel = new RequestModel();
-            requestModel.Categories = String.Empty;
-            if (General)
-                requestModel.Categories += "general,";
-            if (Science)
-                requestModel.Categories += "science,";
-            if (Sports)
-                requestModel.Categories += "sports,";
-            if (Business)
-                requestModel.Categories += "business,";
-            if (Health)
-                requestModel.Categories += "health,";
-            if (Entertainment)
-                requestModel.Categories += "entertainment,";
-            if (Tech)
-                requestModel.Categories += "tech,";
-            if (Politics)
-                requestModel.Categories += "politics,";
-            if (Food)
-                requestModel.Categories += "food,";
-            if (Travel)
-                requestModel.Categories += "travel,";
-            if(!String.IsNullOrEmpty(requestModel.Categories))
-                requestModel.Categories =  requestModel.Categories
-                                           .Remove(requestModel.Categories.Length - 1, 1);
+            requestModel.Categories = AddCategories();
+            if (!String.IsNullOrEmpty(Domains))
+            requestModel.domains =  Domains;
+            if (!String.IsNullOrEmpty(Language))
+            requestModel.language = Language;
+            requestModel.published_after = DateFrom;
             if (!String.IsNullOrEmpty(Search))
                 requestModel.Search = Search;
             requestModel.Timeout = -1;
             requestModel.Limit = 5;
+            //todo: create cofig file and read token from it
             requestModel.Token = "HgcpXI8z8J7yLHOCfRxpluxoGgUA7zYbGmq5PdAR";
             requestModel.Url = "https://api.thenewsapi.com/v1/news/all";
             var result = services.GetNews(requestModel);
             AllNews.Rootobject allNews =  JsonReader<AllNews.Rootobject>.JsonDeserialize(result.Content);
             Fill(allNews);
-
-
-
-
-
-
+            ResultPanelVisibility = true;
         }
+        private void SignIn()
+        {
+            string login = Login;
+            if (File.Exists("Config.json"))
+            {
+                List<ConfigModel> configObject = JsonConvert.DeserializeObject<List<ConfigModel>>(File.ReadAllText("Config.json"));
+                if(configObject.Where(row=>row.Login == this.Login).Count()>0)
+                {
+                    if(BCrypt.Net.BCrypt.Verify(this.Password, configObject.Where(row => row.Login == this.Login).FirstOrDefault().Password))
+                    {
+                        Debug.WriteLine("Przypisanie wartości do filtrow");    
+                    }
+                    else
+                    {
+                        Debug.WriteLine("Obsluga braku hasla");
+                    }
+                }
+                else
+                {
+                    //todo: obsluzyc nullowa zawartosc
+                    Debug.WriteLine("Utworzenie użytkownika");
+                    configObject.Add(new ConfigModel
+                    {
+                        Login = this.Login,
+                        Password = BCrypt.Net.BCrypt.HashPassword(this.Password),
+                        FilterSettings = new RequestModel
+                        {
+                            Categories = AddCategories(),
+                            //Limit
+                            Search = this.Search,
+                            Token = this.Token,
+                        }
+                    });
+                    Debug.WriteLine("Przypisanie wartości do filtrow");
+                    string jsonConfigModel = JsonConvert.SerializeObject(configObject);
+                    File.WriteAllText("Config.json", jsonConfigModel);
+                }
+
+            }
+            else
+            {
+                List<ConfigModel> configObject = new List<ConfigModel>();
+                configObject.Add
+                    (
+                        new ConfigModel
+                        {
+                            Login = this.Login,
+                            Password = BCrypt.Net.BCrypt.HashPassword(this.Password),
+                            FilterSettings = new RequestModel
+                            {
+                                Categories = AddCategories(),
+                                //Limit
+                                Search = this.Search,
+                                Token = this.Token,
+                            }
+                        }
+                    );
+                string jsonConfigModel = JsonConvert.SerializeObject(configObject);
+                File.WriteAllText("Config.json", jsonConfigModel);
+            }
+            Debug.WriteLine("Its working");
+            LoginPanelVisibility = false;
+        }
+
         public IMvxAsyncCommand DoAsyncWorkCommand => new MvxAsyncCommand(DoAsyncWorkAsync, () => true);
         private Task DoAsyncWorkAsync()
         {
@@ -191,11 +331,6 @@ namespace NewsApp.Core
         public override async Task Initialize()
         {
             await base.Initialize();
-        }
-        public AllNewsViewModel(IServices services)
-        {
-            this.services = services;
-
         }
         public async Task<AllNews.Rootobject> GetNews(IRequestModel requestModel)
         {
@@ -217,7 +352,34 @@ namespace NewsApp.Core
                     Title = news.title
                 });
             }
-            
+        }
+        private string AddCategories()
+        {
+            string categories = String.Empty;
+            if (General)
+                categories += "general,";
+            if (Science)
+                categories += "science,";
+            if (Sports)
+                categories += "sports,";
+            if (Business)
+               categories += "business,";
+            if (Health)
+                categories += "health,";
+            if (Entertainment)
+                categories += "entertainment,";
+            if (Tech)
+                categories += "tech,";
+            if (Politics)
+                categories += "politics,";
+            if (Food)
+                categories += "food,";
+            if (Travel)
+                categories += "travel,";
+            if (!String.IsNullOrEmpty(categories))
+                categories = categories
+                .Remove(categories.Length - 1, 1);
+            return categories;
         }
     }
 }

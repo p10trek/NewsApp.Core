@@ -28,11 +28,16 @@ namespace NewsApp.Core
                 throw new CustomException(ExceptionMessages.TokenIsEmpty, methodName);
 
             request.AddQueryParameter("api_token", requestModel.Token);
-
-            request.AddQueryParameter("categories", requestModel.Categories);
-            request.AddQueryParameter("search", requestModel.Search);
-            request.AddQueryParameter("limit", requestModel.Limit.ToString());
-
+            if (!String.IsNullOrEmpty(requestModel.Categories))
+                request.AddQueryParameter("categories", requestModel.Categories);
+            if (!String.IsNullOrEmpty(requestModel.Search))
+                request.AddQueryParameter("search", requestModel.Search);
+                request.AddQueryParameter("limit", requestModel.Limit.ToString());
+            if (!String.IsNullOrEmpty(requestModel.language))
+                request.AddQueryParameter("language", requestModel.language);
+            request.AddQueryParameter("published_after", requestModel.published_after.ToString("yyyy-MM-dd"));
+            if (!String.IsNullOrEmpty(requestModel.domains))
+                request.AddQueryParameter("domains", requestModel.domains);
             IRestResponse response = client.Execute(request);
             Debug.WriteLine(response.Content);
             return response;

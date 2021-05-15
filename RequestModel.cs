@@ -14,5 +14,10 @@ namespace NewsApp.Core
         public int Limit { get; set; }
         public string Url { get; set; }
         public int Timeout { get; set; } = -1;
+        public DateTime published_after { get; set; }
+        public DateTime published_before { get; set; }
+        public DateTime published_on { get; set; }
+        public string language { get; set; }
+        public string domains { get; set; }
     }
 }
