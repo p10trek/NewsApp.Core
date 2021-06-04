@@ -1,4 +1,5 @@
 ﻿using MvvmCross;
+using MvvmCross.IoC;
 using MvvmCross.ViewModels;
 using NewsApp.Core.Interfaces;
 

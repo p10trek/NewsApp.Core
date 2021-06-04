@@ -14,6 +14,10 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Linq;
 using System.Windows;
+using System.Security;
+using MvvmCross;
+using NewsApp.Core.DataBase;
+
 namespace NewsApp.Core
 {
     public class AllNewsViewModel : MvxViewModel
@@ -150,6 +154,16 @@ namespace NewsApp.Core
                 RaisePropertyChanged(() => Travel);
             }
         }
+        private bool _IsCustomSettings;
+        public bool IsCustomSettings
+        {
+            get => _IsCustomSettings;
+            set
+            {
+                _IsCustomSettings = value;
+                RaisePropertyChanged(() => IsCustomSettings);
+            }
+        }
         private string _login;
         public string Login
         {
@@ -160,14 +174,34 @@ namespace NewsApp.Core
                 RaisePropertyChanged(() => Login);
             }
         }
-        private string _password;
-        public string Password
+        private String _password;
+        public String Password
         {
             get => _password;
             set
             {
                 _password = value;
                 RaisePropertyChanged(() => Password);
+            }
+        }
+        private string _loginMsg;
+        public string LoginMsg
+        {
+            get => _loginMsg;
+            set
+            {
+                _loginMsg = value;
+                RaisePropertyChanged(() => LoginMsg);
+            }
+        }
+        private String _passwordMsg;
+        public String PasswordMsg
+        {
+            get => _passwordMsg;
+            set
+            {
+                _passwordMsg = value;
+                RaisePropertyChanged(() => PasswordMsg);
             }
         }
         private string _token;
@@ -210,14 +244,14 @@ namespace NewsApp.Core
                 RaisePropertyChanged(() => DateFrom);
             }
         }
-        //private Visibility _loginPanelVisibility;
+        private bool _loginPanelVisibility;
         public bool LoginPanelVisibility
         {
-            //get => _loginPanelVisibility;
+            get => _loginPanelVisibility;
             set
             {
-                //_loginPanelVisibility = value;
-                //RaisePropertyChanged(() => LoginPanelVisibility);
+                _loginPanelVisibility = value;
+                RaisePropertyChanged(() => LoginPanelVisibility);
             }
         }
         private bool _resultPanelVisibility;
@@ -230,14 +264,83 @@ namespace NewsApp.Core
                 RaisePropertyChanged(() => ResultPanelVisibility);
             }
         }
+        private bool _IsPreferencesVisible;
+        public bool IsPreferencesVisible
+        {
+            get => _IsPreferencesVisible;
+            set
+            {
+                _IsPreferencesVisible = value;
+                RaisePropertyChanged(() => IsPreferencesVisible);
+            }
+        }
+        private bool _IsQSearchVisible;
+        public bool IsQSearchVisible
+        {
+            get => _IsQSearchVisible;
+            set
+            {
+                _IsQSearchVisible = value;
+                RaisePropertyChanged(() => IsQSearchVisible);
+            }
+        }
+        private bool _IsASearchVisible;
+        public bool IsASearchVisible
+        {
+            get => _IsASearchVisible;
+            set
+            {
+                _IsASearchVisible = value;
+                RaisePropertyChanged(() => IsASearchVisible);
+            }
+        }
+        private bool _IsFavoritesVisible;
+        public bool IsFavoritesVisible
+        {
+            get => _IsFavoritesVisible;
+            set
+            {
+                _IsFavoritesVisible = value;
+                RaisePropertyChanged(() => IsFavoritesVisible);
+            }
+        }
+        private bool _IsHistoryVisible;
+        public bool IsHistoryVisible
+        {
+            get => _IsHistoryVisible;
+            set
+            {
+                _IsHistoryVisible = value;
+                RaisePropertyChanged(() => IsHistoryVisible);
+            }
+        }
+        private bool _IsSignInVisible;
+        public bool IsSignInVisible
+        {
+            get => _IsSignInVisible;
+            set
+            {
+                _IsSignInVisible = value;
+                RaisePropertyChanged(() => IsSignInVisible);
+            }
+        }
 
         public IMvxCommand DoWorkCommand => new MvxCommand(DoWork, () => true);
-        public IMvxCommand SignInCommand => new MvxCommand(SignIn, () => true);
+        public IMvxCommand ShowPreferencesCommand => new MvxCommand(()=>ShowMenu("Preferences"), () => true);
+        public IMvxCommand ShowQSearchCommand => new MvxCommand(()=>ShowMenu("QSearch"), () => true);
+        public IMvxCommand ShowASearchCommand => new MvxCommand(()=>ShowMenu("ASearch"), () => true);
+        public IMvxCommand ShowFavoritesCommand => new MvxCommand(()=>ShowMenu("Favorites"), () => true);
+        public IMvxCommand ShowHistoryCommand => new MvxCommand(()=>ShowMenu("History"), () => true);
+        public IMvxCommand ShowSignInCommand => new MvxCommand(()=>ShowMenu("SignIn"), () => true);
         #endregion
 
         private void DoWork()
         {
+            GetUserData("Users");
+            LoginPanelVisibility = false;
+            //ResultPanelVisibility = true;
             IRequestModel requestModel = new RequestModel();
+            
             requestModel.Categories = AddCategories();
             if (!String.IsNullOrEmpty(Domains))
             requestModel.domains =  Domains;
@@ -256,15 +359,85 @@ namespace NewsApp.Core
             Fill(allNews);
             ResultPanelVisibility = true;
         }
+
+        public object GetUserData(string userName)
+        {
+            FirebaseDB firebaseDB = new FirebaseDB("https://newsapp-292a3-default-rtdb.europe-west1.firebasedatabase.app");
+            FirebaseDB firebaseDBTeams = firebaseDB.Node(userName);
+            FirebaseResponse getResponse = firebaseDBTeams.Get();
+            Debug.WriteLine(getResponse.Success);
+            if (getResponse.Success)
+                Debug.WriteLine(getResponse.JSONContent);
+            return null;
+        }
+
+        private void ShowMenu(string visibleMenu)
+        {
+            IsPreferencesVisible = false;
+            IsQSearchVisible = false;
+            IsASearchVisible = false;
+            IsFavoritesVisible = false;
+            IsHistoryVisible = false;
+            IsSignInVisible = false;
+
+            switch (visibleMenu)
+            {
+                case "Preferences":
+                    IsPreferencesVisible = true;
+                    break;
+                case "QSearch":
+                    IsQSearchVisible = true;
+                    break;
+                case "ASearch":
+                    IsASearchVisible = true;
+                    break;
+                case "Favorites":
+                    IsFavoritesVisible = true;
+                    break;
+                case "History":
+                    IsHistoryVisible = true;
+                    break;
+                case "SignIn":
+                    IsSignInVisible = true;
+                    break;
+                default:
+                    break;
+            };
+        }
         private void SignIn()
         {
+#if DEBUG
+
+
+#endif
+            //var instance = Mvx.IoCProvider.Resolve<IUserDialogs>();
+            if(String.IsNullOrEmpty(Login))
+            {
+                LoginMsg = "Login is empty";
+                return;
+            }
+            else
+            {
+                LoginMsg = "";
+            }
+            if (String.IsNullOrEmpty(Password))
+            {
+                PasswordMsg = "Password is empty";
+                return;
+            }
+            else
+            {
+                PasswordMsg = "";
+            }
             string login = Login;
             if (File.Exists("Config.json"))
             {
                 List<ConfigModel> configObject = JsonConvert.DeserializeObject<List<ConfigModel>>(File.ReadAllText("Config.json"));
                 if(configObject.Where(row=>row.Login == this.Login).Count()>0)
                 {
-                    if(BCrypt.Net.BCrypt.Verify(this.Password, configObject.Where(row => row.Login == this.Login).FirstOrDefault().Password))
+
+                    if (BCrypt.Net.BCrypt.Verify(new System.Net.NetworkCredential(string.Empty, this.Password).Password
+                        , configObject.Where(row => row.Login == this.Login).FirstOrDefault().Password))
                     {
                         Debug.WriteLine("Przypisanie wartości do filtrow");    
                     }
@@ -280,7 +453,7 @@ namespace NewsApp.Core
                     configObject.Add(new ConfigModel
                     {
                         Login = this.Login,
-                        Password = BCrypt.Net.BCrypt.HashPassword(this.Password),
+                        Password = BCrypt.Net.BCrypt.HashPassword(new System.Net.NetworkCredential(string.Empty, this.Password).Password),
                         FilterSettings = new RequestModel
                         {
                             Categories = AddCategories(),
@@ -303,7 +476,7 @@ namespace NewsApp.Core
                         new ConfigModel
                         {
                             Login = this.Login,
-                            Password = BCrypt.Net.BCrypt.HashPassword(this.Password),
+                            Password = BCrypt.Net.BCrypt.HashPassword(new System.Net.NetworkCredential(string.Empty, this.Password).Password),
                             FilterSettings = new RequestModel
                             {
                                 Categories = AddCategories(),
@@ -317,7 +490,7 @@ namespace NewsApp.Core
                 File.WriteAllText("Config.json", jsonConfigModel);
             }
             Debug.WriteLine("Its working");
-            LoginPanelVisibility = false;
+            //LoginPanelVisibility = false;
         }
 
         public IMvxAsyncCommand DoAsyncWorkCommand => new MvxAsyncCommand(DoAsyncWorkAsync, () => true);
@@ -332,17 +505,19 @@ namespace NewsApp.Core
         {
             await base.Initialize();
         }
-        public async Task<AllNews.Rootobject> GetNews(IRequestModel requestModel)
-        {
-            var result = services.GetNews(requestModel);
-            return JsonReader<AllNews.Rootobject>.JsonDeserialize(result.Content);
-        }
+        //public async Task<AllNews.Rootobject> GetNews(IRequestModel requestModel)
+        //{
+        //    var result = services.GetNews(requestModel);
+        //    return JsonReader<AllNews.Rootobject>.JsonDeserialize(result.Content);
+        //}
         public ObservableCollection<AllNewsModel> NewsList { get; set; } = new ObservableCollection<AllNewsModel>();
 
         private Random rand = new Random();
 
         private void Fill(AllNews.Rootobject allNews)
         {
+            if (NewsList.Count > 0)
+                NewsList.Clear();
             foreach (var news in allNews.data)
             {
                 NewsList.Add(new AllNewsModel
