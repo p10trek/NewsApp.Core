@@ -325,6 +325,26 @@ namespace NewsApp.Core
                 RaisePropertyChanged(() => IsSignInVisible);
             }
         }
+        private bool _IsSignInButtonVisible = true;
+        public bool IsSignInButtonVisible
+        {
+            get => _IsSignInButtonVisible;
+            set
+            {
+                _IsSignInButtonVisible = value;
+                RaisePropertyChanged(() => IsSignInButtonVisible);
+            }
+        }
+        private bool _IsLogOutButtonVisible;
+        public bool IsLogOutButtonVisible
+        {
+            get => _IsLogOutButtonVisible;
+            set
+            {
+                _IsLogOutButtonVisible = value;
+                RaisePropertyChanged(() => IsLogOutButtonVisible);
+            }
+        }
         private bool _IsSignIn;
         public bool IsSignIn
         {
@@ -345,8 +365,19 @@ namespace NewsApp.Core
                 RaisePropertyChanged(() => UserName);
             }
         }
+        private int _SelectedItem;
+        public int SelectedItem
+        {
+            get => _SelectedItem;
+            set
+            {
+                _SelectedItem = value;
+                RaisePropertyChanged(() => SelectedItem);
+            }
+        }
 
-        public IMvxCommand DoWorkCommand => new MvxCommand(DoWork, () => true);
+        public IMvxCommand DoWorkCommand => new MvxCommand(SearchNews, () => true);
+        public IMvxCommand SavePreferencesCommand => new MvxCommand(SavePreferences, () => true);
         public IMvxCommand ShowPreferencesCommand => new MvxCommand(()=>ShowMenu("Preferences"), () => true);
         public IMvxCommand ShowQSearchCommand => new MvxCommand(()=>ShowMenu("QSearch"), () => true);
         public IMvxCommand ShowASearchCommand => new MvxCommand(()=>ShowMenu("ASearch"), () => true);
@@ -354,9 +385,10 @@ namespace NewsApp.Core
         public IMvxCommand ShowHistoryCommand => new MvxCommand(()=>ShowMenu("History"), () => true);
         public IMvxCommand ShowSignInCommand => new MvxCommand(()=>ShowMenu("SignIn"), () => true);
         public IMvxCommand SignInCommand => new MvxCommand(SignIn,() => true);
+        public IMvxCommand AddFavoritesCommand => new MvxCommand(AddFavorites, () => true);
         #endregion
 
-        private void DoWork()
+        private void SearchNews()
         {
             
             LoginPanelVisibility = false;
@@ -382,7 +414,27 @@ namespace NewsApp.Core
             ResultPanelVisibility = true;
         }
 
+        public void SavePreferences()
+        {
+            if (IsSignIn) {
+                var dll = GenericFactory<DLL>.CreateInstance("https://newsapp-292a3-default-rtdb.europe-west1.firebasedatabase.app/");
+                var preferencse = new Preferences
+                {
+                    Categories = AddCategories(),
+                    domains = this.Domains,
+                    //Limit = this.Limit,
+                    published_after = this.DateFrom,
+                    //published_before = this.DataTo,
+                    language = this.Language,
+                    Search = this.Search
+                };
+                if (dll.PutUserData(preferencse, DbRequestType.Users, this.Login));
+            }
+        }
+        public void AddFavorites()
+        {
 
+        }
 
         private void ShowMenu(string visibleMenu)
         {
@@ -484,10 +536,14 @@ namespace NewsApp.Core
                         //this.limit = user.preferences.limit;
                         //this.ToDate = user.preferences.published_after;
                         this.DateFrom = user.preferences.published_before;
+                        IsSignInVisible = false;
+                        IsSignInButtonVisible = false;
+                        IsLogOutButtonVisible = true;
                     }
                     else
                     {
                         Debug.WriteLine("haslo sie nie zgadza");
+                        LoginMsg = "Niepoprawny login i/lub hasło";
                         IsSignIn = false;
                     }
                 }
@@ -525,7 +581,8 @@ namespace NewsApp.Core
                 {
                     Image = news.image_url,
                     Content = news.description,
-                    Title = news.title
+                    Title = news.title,
+                    NewsGuid = new Guid(news.uuid)
                 });
             }
         }

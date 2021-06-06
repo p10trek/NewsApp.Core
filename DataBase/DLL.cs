@@ -11,7 +11,8 @@ namespace NewsApp.Core.DataBase
     public enum DbRequestType
     {
         User,
-        Users
+        Users,
+        Preferences
     }
     public class DLL
     {
@@ -32,11 +33,11 @@ namespace NewsApp.Core.DataBase
                 Debug.WriteLine(getResponse.JSONContent);
             return JsonReader<FirebaseGetUserResponse>.JsonDeserialize(getResponse.JSONContent);
         }
-        public bool PutUserData(FirebaseGetUserResponse userToAdd,DbRequestType dbRequestType, string UserName)
+        public bool PutUserData<T>(T DataToAdd,DbRequestType dbRequestType, string UserName)
         {
             FirebaseDB firebaseDB = new FirebaseDB($"{BaseURL}{dbRequestType}");
             FirebaseDB firebaseDBTeams = firebaseDB.Node(UserName);
-            var json = JsonConvert.SerializeObject(userToAdd);
+            var json = JsonConvert.SerializeObject(DataToAdd);
             FirebaseResponse getResponse = firebaseDBTeams.Put(json);
             if (getResponse.Success)
                 return true;

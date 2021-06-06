@@ -38,6 +38,13 @@ namespace NewsApp.Core
             get { return _image; }
             set { Set(ref _image, value); }
         }
+        private Guid _NewsGuid;
+        public Guid NewsGuid
+        {
+            get { return _NewsGuid; }
+            set { Set(ref _NewsGuid, value); }
+        }
+
 
     }
 }
