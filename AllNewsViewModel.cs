@@ -17,6 +17,7 @@ using System.Windows;
 using System.Security;
 using MvvmCross;
 using NewsApp.Core.DataBase;
+using NewsApp.Core.Helpers;
 
 namespace NewsApp.Core
 {
@@ -324,6 +325,26 @@ namespace NewsApp.Core
                 RaisePropertyChanged(() => IsSignInVisible);
             }
         }
+        private bool _IsSignIn;
+        public bool IsSignIn
+        {
+            get => _IsSignIn;
+            set
+            {
+                _IsSignIn = value;
+                RaisePropertyChanged(() => IsSignIn);
+            }
+        }
+        private bool _UserName;
+        public bool UserName
+        {
+            get => _UserName;
+            set
+            {
+                _UserName = value;
+                RaisePropertyChanged(() => UserName);
+            }
+        }
 
         public IMvxCommand DoWorkCommand => new MvxCommand(DoWork, () => true);
         public IMvxCommand ShowPreferencesCommand => new MvxCommand(()=>ShowMenu("Preferences"), () => true);
@@ -332,11 +353,12 @@ namespace NewsApp.Core
         public IMvxCommand ShowFavoritesCommand => new MvxCommand(()=>ShowMenu("Favorites"), () => true);
         public IMvxCommand ShowHistoryCommand => new MvxCommand(()=>ShowMenu("History"), () => true);
         public IMvxCommand ShowSignInCommand => new MvxCommand(()=>ShowMenu("SignIn"), () => true);
+        public IMvxCommand SignInCommand => new MvxCommand(SignIn,() => true);
         #endregion
 
         private void DoWork()
         {
-            GetUserData("Users");
+            
             LoginPanelVisibility = false;
             //ResultPanelVisibility = true;
             IRequestModel requestModel = new RequestModel();
@@ -360,16 +382,7 @@ namespace NewsApp.Core
             ResultPanelVisibility = true;
         }
 
-        public object GetUserData(string userName)
-        {
-            FirebaseDB firebaseDB = new FirebaseDB("https://newsapp-292a3-default-rtdb.europe-west1.firebasedatabase.app");
-            FirebaseDB firebaseDBTeams = firebaseDB.Node(userName);
-            FirebaseResponse getResponse = firebaseDBTeams.Get();
-            Debug.WriteLine(getResponse.Success);
-            if (getResponse.Success)
-                Debug.WriteLine(getResponse.JSONContent);
-            return null;
-        }
+
 
         private void ShowMenu(string visibleMenu)
         {
@@ -406,12 +419,8 @@ namespace NewsApp.Core
         }
         private void SignIn()
         {
-#if DEBUG
-
-
-#endif
-            //var instance = Mvx.IoCProvider.Resolve<IUserDialogs>();
-            if(String.IsNullOrEmpty(Login))
+            #region checking textboxes content
+            if (String.IsNullOrEmpty(Login))
             {
                 LoginMsg = "Login is empty";
                 return;
@@ -429,68 +438,60 @@ namespace NewsApp.Core
             {
                 PasswordMsg = "";
             }
-            string login = Login;
-            if (File.Exists("Config.json"))
+            #endregion
+
+            var pass = BCrypt.Net.BCrypt.HashPassword(new System.Net.NetworkCredential(string.Empty, this.Password).Password);
+            //todo sprawdz konstruktor z parametrem
+            var dll = GenericFactory<DLL>.CreateInstance("https://newsapp-292a3-default-rtdb.europe-west1.firebasedatabase.app/");
+            using (FirebaseGetUserResponse user = dll.GetUserData(DbRequestType.Users, Login))
             {
-                List<ConfigModel> configObject = JsonConvert.DeserializeObject<List<ConfigModel>>(File.ReadAllText("Config.json"));
-                if(configObject.Where(row=>row.Login == this.Login).Count()>0)
+
+                if (user == null)
                 {
 
-                    if (BCrypt.Net.BCrypt.Verify(new System.Net.NetworkCredential(string.Empty, this.Password).Password
-                        , configObject.Where(row => row.Login == this.Login).FirstOrDefault().Password))
+                    FirebaseGetUserResponse userToAdd = new FirebaseGetUserResponse
                     {
-                        Debug.WriteLine("Przypisanie wartości do filtrow");    
-                    }
-                    else
-                    {
-                        Debug.WriteLine("Obsluga braku hasla");
-                    }
+                        credentials = new FirebaseGetUserResponse.Credentials
+                        {
+                            password = BCrypt.Net.BCrypt.HashPassword(new System.Net.NetworkCredential(string.Empty, this.Password).Password),
+                            token = this.Token,
+                            user = this.Login
+                        },
+                        preferences = new FirebaseGetUserResponse.Preferences
+                        {
+                            categories = AddCategories(),
+                            search = this.Search,
+                            language = this.Language,
+                            //limit = 
+                            published_after = this.DateFrom,
+                            //published_before = this.DateTo,
+                            domain = this.Domains,
+                        }
+                    };
+                    if (dll.PutUserData(userToAdd, DbRequestType.Users, this.Login))
+                        LoginMsg = "Użytkownik został dodany";
                 }
                 else
                 {
-                    //todo: obsluzyc nullowa zawartosc
-                    Debug.WriteLine("Utworzenie użytkownika");
-                    configObject.Add(new ConfigModel
+                    if (BCrypt.Net.BCrypt.Verify(new System.Net.NetworkCredential(string.Empty, this.Password).Password
+                       , user.credentials.password))
                     {
-                        Login = this.Login,
-                        Password = BCrypt.Net.BCrypt.HashPassword(new System.Net.NetworkCredential(string.Empty, this.Password).Password),
-                        FilterSettings = new RequestModel
-                        {
-                            Categories = AddCategories(),
-                            //Limit
-                            Search = this.Search,
-                            Token = this.Token,
-                        }
-                    });
-                    Debug.WriteLine("Przypisanie wartości do filtrow");
-                    string jsonConfigModel = JsonConvert.SerializeObject(configObject);
-                    File.WriteAllText("Config.json", jsonConfigModel);
+                        Debug.WriteLine("haslo sie zgadza");
+                        IsSignIn = true;
+                        SetLocalCategories(user.preferences.categories);
+                        this.Domains = user.preferences.domain;
+                        this.Language = user.preferences.language;
+                        //this.limit = user.preferences.limit;
+                        //this.ToDate = user.preferences.published_after;
+                        this.DateFrom = user.preferences.published_before;
+                    }
+                    else
+                    {
+                        Debug.WriteLine("haslo sie nie zgadza");
+                        IsSignIn = false;
+                    }
                 }
-
             }
-            else
-            {
-                List<ConfigModel> configObject = new List<ConfigModel>();
-                configObject.Add
-                    (
-                        new ConfigModel
-                        {
-                            Login = this.Login,
-                            Password = BCrypt.Net.BCrypt.HashPassword(new System.Net.NetworkCredential(string.Empty, this.Password).Password),
-                            FilterSettings = new RequestModel
-                            {
-                                Categories = AddCategories(),
-                                //Limit
-                                Search = this.Search,
-                                Token = this.Token,
-                            }
-                        }
-                    );
-                string jsonConfigModel = JsonConvert.SerializeObject(configObject);
-                File.WriteAllText("Config.json", jsonConfigModel);
-            }
-            Debug.WriteLine("Its working");
-            //LoginPanelVisibility = false;
         }
 
         public IMvxAsyncCommand DoAsyncWorkCommand => new MvxAsyncCommand(DoAsyncWorkAsync, () => true);
@@ -555,6 +556,29 @@ namespace NewsApp.Core
                 categories = categories
                 .Remove(categories.Length - 1, 1);
             return categories;
+        }
+        private void SetLocalCategories(string categories)
+        {
+            if (categories.Contains("general"))
+                General = true;
+            if (categories.Contains("science"))
+                Science = true;
+            if (categories.Contains("sports"))
+                Sports = true;
+            if (categories.Contains("business"))
+                Business = true;
+            if (categories.Contains("health"))
+                Health = true;
+            if (categories.Contains("entertainment"))
+                Entertainment = true;
+            if (categories.Contains("tech"))
+                Tech = true;
+            if (categories.Contains("politics"))
+                Politics = true;
+            if (categories.Contains("food"))
+                Food = true;
+            if (categories.Contains("travel"))
+                Travel = true;
         }
     }
 }

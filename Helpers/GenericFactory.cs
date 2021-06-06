@@ -12,5 +12,11 @@ namespace NewsApp.Core.Helpers
             instance = new T();
             return instance;
         }
+        public static T CreateInstance(string arg)
+        {
+            T instance;
+            instance = (T)Activator.CreateInstance(typeof(T), arg);
+            return instance;
+        }
     }
 }

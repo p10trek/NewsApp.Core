@@ -14,10 +14,10 @@ namespace NewsApp.Core.DataBase
         /// <summary>  
         /// Suffix to be added in each resource URI  
         /// </summary>  
-        private const string JSON_SUFFIX = ".json";
+        private const string JSON_SUFFIX = "/.json";
 
         /// <summary>  
-        /// Initializes a new instance of the <see cref="FirebaseRequest"/> class  
+        /// Initializes a new instance of the <see cref="FirebaseDB"/> class  
         /// </summary>  
         /// <param name="method">HTTP Method</param>  
         /// <param name="uri">URI of resource</param>  
@@ -26,14 +26,7 @@ namespace NewsApp.Core.DataBase
         {
             this.Method = method;
             this.JSON = jsonString;
-            if (uri.Replace("/", string.Empty).EndsWith("firebaseio.com"))
-            {
-                this.Uri = uri + '/' + JSON_SUFFIX;
-            }
-            else
-            {
-                this.Uri = uri + JSON_SUFFIX;
-            }
+            this.Uri = uri + JSON_SUFFIX;
         }
 
         /// <summary>  
