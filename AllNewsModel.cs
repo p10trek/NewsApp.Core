@@ -44,6 +44,12 @@ namespace NewsApp.Core
             get { return _NewsGuid; }
             set { Set(ref _NewsGuid, value); }
         }
+        private string _url;
+        public string url
+        {
+            get { return _url; }
+            set { Set(ref _url, value); }
+        }
 
 
     }

@@ -375,6 +375,26 @@ namespace NewsApp.Core
                 RaisePropertyChanged(() => SelectedItem);
             }
         }
+        private bool _IsWebBrowserVisible;
+        public bool IsWebBrowserVisible
+        {
+            get => _IsWebBrowserVisible;
+            set
+            {
+                _IsWebBrowserVisible = value;
+                RaisePropertyChanged(() => IsWebBrowserVisible);
+            }
+        }
+        private Uri _SelectedURL;
+        public Uri SelectedURL
+        {
+            get => _SelectedURL;
+            set
+            {
+                _SelectedURL = value;
+                RaisePropertyChanged(() => SelectedURL);
+            }
+        }
 
         public IMvxCommand DoWorkCommand => new MvxCommand(SearchNews, () => true);
         public IMvxCommand SavePreferencesCommand => new MvxCommand(SavePreferences, () => true);
@@ -386,6 +406,7 @@ namespace NewsApp.Core
         public IMvxCommand ShowSignInCommand => new MvxCommand(()=>ShowMenu("SignIn"), () => true);
         public IMvxCommand SignInCommand => new MvxCommand(SignIn,() => true);
         public IMvxCommand AddFavoritesCommand => new MvxCommand(AddFavorites, () => true);
+        public IMvxCommand ShowBrowserCommand => new MvxCommand(ShowBrowser, () => true);
         #endregion
 
         private void SearchNews()
@@ -412,6 +433,13 @@ namespace NewsApp.Core
             AllNews.Rootobject allNews =  JsonReader<AllNews.Rootobject>.JsonDeserialize(result.Content);
             Fill(allNews);
             ResultPanelVisibility = true;
+        }
+        public void ShowBrowser()
+        {
+            Debug.WriteLine(SelectedItem);
+            ResultPanelVisibility = false;
+            IsWebBrowserVisible = true;
+            SelectedURL = new Uri(NewsList[SelectedItem].url);
         }
 
         public void SavePreferences()
@@ -524,7 +552,7 @@ namespace NewsApp.Core
                         LoginMsg = "Użytkownik został dodany";
                 }
                 else
-                {
+                {//todo zapis preferencji niszczy poświadczenia i reszte
                     if (BCrypt.Net.BCrypt.Verify(new System.Net.NetworkCredential(string.Empty, this.Password).Password
                        , user.credentials.password))
                     {
@@ -582,7 +610,9 @@ namespace NewsApp.Core
                     Image = news.image_url,
                     Content = news.description,
                     Title = news.title,
-                    NewsGuid = new Guid(news.uuid)
+                    NewsGuid = new Guid(news.uuid),
+                    url = news.url
+
                 });
             }
         }
