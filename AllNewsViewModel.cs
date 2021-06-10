@@ -376,6 +376,7 @@ namespace NewsApp.Core
                 RaisePropertyChanged(() => UserName);
             }
         }
+        private int _selectedTMP;
         private int _SelectedItem;
         public int SelectedItem
         {
@@ -435,7 +436,7 @@ namespace NewsApp.Core
         public IMvxCommand ShowHistoryCommand => new MvxCommand(()=>ShowMenu("History"), () => true);
         public IMvxCommand ShowSignInCommand => new MvxCommand(()=>ShowMenu("SignIn"), () => true);
         public IMvxCommand SignInCommand => new MvxCommand(SignIn,() => true);
-        public IMvxCommand AddFavoritesCommand => new MvxCommand(AddFavorites, () => true);
+        public IMvxCommand AddToFavoritesCommand => new MvxCommand(AddToFavorites, () => true);
         public IMvxCommand ShowBrowserCommand => new MvxCommand(ShowBrowser, () => true);
         public IMvxCommand LogOutCommand => new MvxCommand(LogOut, () => true);
         public IMvxCommand BackToListCommand => new MvxCommand(BackToList, () => true); 
@@ -451,7 +452,9 @@ namespace NewsApp.Core
             requestModel.domains = this.Domains;
             if (!String.IsNullOrEmpty(this.Language))
             requestModel.language = this.Language;
-            requestModel.published_after = this.DateTo;
+            
+            requestModel.published_after = this.DateFrom;
+            requestModel.published_before = this.DateTo;
             if (!String.IsNullOrEmpty(this.Search))
                 requestModel.Search = this.Search;
             if (!String.IsNullOrEmpty(this.Limit.ToString()))
@@ -462,7 +465,8 @@ namespace NewsApp.Core
             requestModel.Token = "HgcpXI8z8J7yLHOCfRxpluxoGgUA7zYbGmq5PdAR";
 #endif
             requestModel.Url = "https://api.thenewsapi.com/v1/news/all";
-            var result = services.GetNews(requestModel);
+            string login = IsSignIn == true ? Login : String.Empty;
+            var result = services.GetNews(requestModel, login);
             AllNews.Rootobject allNews =  JsonReader<AllNews.Rootobject>.JsonDeserialize(result.Content);
             Fill(allNews);
             ResultPanelVisibility = true;
@@ -472,7 +476,9 @@ namespace NewsApp.Core
             Debug.WriteLine(SelectedItem);
             ResultPanelVisibility = false;
             IsWebBrowserVisible = true;
+            _selectedTMP = SelectedItem;
             SelectedURL = new Uri(NewsList[SelectedItem].url);
+
         }
         private void BackToList()
         {
@@ -499,9 +505,16 @@ namespace NewsApp.Core
                 if (dll.PutUserData(preferencse, DbRequestType.Preferences, this.Login));
             }
         }
-        public void AddFavorites()
+        public void AddToFavorites()
         {
+            List<string> fav = new List<string>();
+            var dll = GenericFactory<DLL>.CreateInstance("https://newsapp-292a3-default-rtdb.europe-west1.firebasedatabase.app/Users/{node}");
+            var data = dll.GetUserInfo(this.Login, DbRequestType.Favorites);
+            if (data != null)
+                fav.AddRange(data);
 
+            fav.Add(NewsList[_selectedTMP].url);
+            dll.PutUserData(fav, DbRequestType.Favorites, this.Login);
         }
 
         private void ShowMenu(string visibleMenu)
@@ -595,8 +608,8 @@ namespace NewsApp.Core
                             this.Domains = userToAdd.Preferences.domain;
                             this.Language = userToAdd.Preferences.language;
                             this.Limit = userToAdd.Preferences.limit;
-                            this.DateTo = userToAdd.Preferences.published_after;
-                            this.DateFrom = userToAdd.Preferences.published_before; 
+                            this.DateTo = userToAdd.Preferences.published_before;
+                            this.DateFrom = userToAdd.Preferences.published_after;
                         }
                         IsSignIn = true;
                         IsSignInVisible = false;
@@ -616,8 +629,8 @@ namespace NewsApp.Core
                         this.Domains = user.Preferences.domain;
                         this.Language = user.Preferences.language;
                         this.Limit = user.Preferences.limit;
-                        this.DateTo = user.Preferences.published_after;
-                        this.DateFrom = user.Preferences.published_before;
+                        this.DateTo = user.Preferences.published_before;
+                        this.DateFrom = user.Preferences.published_after;
                         IsSignInVisible = false;
                         IsSignInButtonVisible = false;
                         IsLogOutButtonVisible = true;
@@ -630,8 +643,8 @@ namespace NewsApp.Core
                         LogOut();
                     }
                 }
-                //todo: wyczysc wlasciwosci z poswiadczeniami
             }
+            this.Password = String.Empty;
         }
         private void LogOut()
         {
@@ -661,6 +674,9 @@ namespace NewsApp.Core
             this.IsASearchVisible = false;
             this.IsPreferencesVisible = false;
             this.IsSignInVisible = true;
+            this.NewsList.Clear();
+            this.SelectedURL = null;
+            this.IsWebBrowserVisible = false;
         }
         public IMvxAsyncCommand DoAsyncWorkCommand => new MvxAsyncCommand(DoAsyncWorkAsync, () => true);
         private Task DoAsyncWorkAsync()

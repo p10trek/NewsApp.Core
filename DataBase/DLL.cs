@@ -12,7 +12,9 @@ namespace NewsApp.Core.DataBase
     {
         User,
         Users,
-        Preferences
+        Preferences,
+        Favorites,
+        History
     }
     public class DLL
     {
@@ -33,6 +35,16 @@ namespace NewsApp.Core.DataBase
                 Debug.WriteLine(getResponse.JSONContent);
             return JsonReader<FirebaseGetUserResponse>.JsonDeserialize(getResponse.JSONContent);
         }
+        public List<string> GetUserInfo(string userName, DbRequestType dbRequestType)
+        {
+            FirebaseDB firebaseDB = new FirebaseDB($"{BaseURL}");
+            FirebaseDB firebaseDBTeams = firebaseDB.Node($"{userName}/{dbRequestType}");
+            FirebaseResponse getResponse = firebaseDBTeams.Get();
+            Debug.WriteLine(getResponse.Success);
+            if (getResponse.Success)
+                Debug.WriteLine(getResponse.JSONContent);
+            return JsonReader<List<string>>.JsonDeserialize(getResponse.JSONContent);
+        }
         public bool PutUserData<T>(T DataToAdd,DbRequestType dbRequestType, string UserName)
         {
             FirebaseDB firebaseDB = null;
@@ -41,10 +53,8 @@ namespace NewsApp.Core.DataBase
                 case DbRequestType.Users:
                     firebaseDB = new FirebaseDB($"{BaseURL}");
                     break;
-                case DbRequestType.Preferences:
-                    firebaseDB = new FirebaseDB($"{BaseURL}/{dbRequestType}");
-                    break;
                 default:
+                    firebaseDB = new FirebaseDB($"{BaseURL}/{dbRequestType}");
                     break;
             }
             

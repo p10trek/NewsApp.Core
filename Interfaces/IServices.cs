@@ -8,6 +8,6 @@ namespace NewsApp.Core.Interfaces
 {
     public interface IServices
     {
-        IRestResponse GetNews(IRequestModel requestModel);
+        IRestResponse GetNews(IRequestModel requestModel, String userLogin = "");
     }
 }

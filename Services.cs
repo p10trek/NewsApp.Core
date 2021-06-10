@@ -1,4 +1,5 @@
-﻿using NewsApp.Core.Helpers;
+﻿using NewsApp.Core.DataBase;
+using NewsApp.Core.Helpers;
 using NewsApp.Core.Interfaces;
 using RestSharp;
 using System;
@@ -11,7 +12,7 @@ namespace NewsApp.Core
 {
     public class Services : IServices
     {
-        public IRestResponse GetNews(IRequestModel requestModel)
+        public IRestResponse GetNews(IRequestModel requestModel, string userName = "")
         {
             string methodName = GenericFactory<RuntimeInfo>
                                 .CreateInstance()
@@ -39,6 +40,22 @@ namespace NewsApp.Core
             if (!String.IsNullOrEmpty(requestModel.domains))
                 request.AddQueryParameter("domains", requestModel.domains);
             IRestResponse response = client.Execute(request);
+
+            if (!String.IsNullOrEmpty(userName))
+            {
+                if (!String.IsNullOrEmpty(response.ResponseUri.OriginalString))
+                {
+                    var dll = GenericFactory<DLL>.CreateInstance("https://newsapp-292a3-default-rtdb.europe-west1.firebasedatabase.app/Users/{node}");
+                    List<string> fav = new List<string>();
+                    
+                    var data = dll.GetUserInfo(userName, DbRequestType.History);
+                    if (data != null)
+                        fav.AddRange(data);
+
+                    fav.Add(response.ResponseUri.OriginalString);
+                    dll.PutUserData(fav, DbRequestType.History, userName);
+                }
+            }
             Debug.WriteLine(response.Content);
             return response;
         }

@@ -33,10 +33,10 @@ namespace NewsApp.Core.DataBase
         /// <returns>Instance of FirebaseDB</returns>  
         public FirebaseDB Node(string node)
         {
-            if (node.Contains("/"))
-            {
-                throw new FormatException("Node must not contain '/', use NodePath instead.");
-            }
+            //if (node.Contains("/"))
+            //{
+            //    throw new FormatException("Node must not contain '/', use NodePath instead.");
+            //}
 
             return new FirebaseDB(this.RootNode.Replace("{node}",node));
         }
