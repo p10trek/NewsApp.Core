@@ -6,19 +6,19 @@ namespace NewsApp.Core.ResponseModel
 {
     public class FirebaseGetUserResponse : IDisposable
     {
-        public Credentials credentials { get; set; }
-        public string[] favorites { get; set; }
-        public string[] history { get; set; }
-        public Preferences preferences { get; set; }
+        public Credentials_ Credentials { get; set; }
+        public string[] Favorites { get; set; }
+        public string[] History { get; set; }
+        public Preferences_ Preferences { get; set; }
 
-        public class Credentials
+        public class Credentials_
         {
             public string password { get; set; }
             public string token { get; set; }
             public string user { get; set; }
         }
 
-        public class Preferences
+        public class Preferences_
         {
             public string categories { get; set; }
             public string language { get; set; }
@@ -40,15 +40,15 @@ namespace NewsApp.Core.ResponseModel
         {
             if (disposing)
             {
-                this.credentials = new FirebaseGetUserResponse.Credentials
+                this.Credentials = new FirebaseGetUserResponse.Credentials_
                 {
                     password = String.Empty,
                     token = String.Empty,
                     user = String.Empty
                 };
-                this.favorites = new string[] { string.Empty };
-                this.history = new string[] { string.Empty };
-                this.preferences = new FirebaseGetUserResponse.Preferences
+                this.Favorites = new string[] { string.Empty };
+                this.History = new string[] { string.Empty };
+                this.Preferences = new FirebaseGetUserResponse.Preferences_
                 {
                     published_after = new DateTime(),
                     categories = String.Empty,

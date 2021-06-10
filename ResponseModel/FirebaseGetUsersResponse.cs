@@ -19,15 +19,15 @@ namespace NewsApp.Core.ResponseModel
             {
                 foreach (var user in Users)
                 {
-                    user.credentials = new FirebaseGetUserResponse.Credentials
+                    user.Credentials = new FirebaseGetUserResponse.Credentials_
                     {
                         password = String.Empty,
                         token = String.Empty,
                         user = String.Empty
                     };
-                    user.favorites = new string[] { string.Empty };
-                    user.history = new string[] { string.Empty };
-                    user.preferences = new FirebaseGetUserResponse.Preferences
+                    user.Favorites = new string[] { string.Empty };
+                    user.History = new string[] { string.Empty };
+                    user.Preferences = new FirebaseGetUserResponse.Preferences_
                     {
                         published_after = new DateTime(),
                         categories = String.Empty,

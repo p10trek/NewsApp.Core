@@ -25,7 +25,7 @@ namespace NewsApp.Core.DataBase
    
         public FirebaseGetUserResponse GetUserData(DbRequestType dbRequestType, string userName="")
         {
-            FirebaseDB firebaseDB = new FirebaseDB($"{BaseURL}{dbRequestType}");
+            FirebaseDB firebaseDB = new FirebaseDB($"{BaseURL}");
             FirebaseDB firebaseDBTeams = firebaseDB.Node(userName);
             FirebaseResponse getResponse = firebaseDBTeams.Get();
             Debug.WriteLine(getResponse.Success);
@@ -35,7 +35,19 @@ namespace NewsApp.Core.DataBase
         }
         public bool PutUserData<T>(T DataToAdd,DbRequestType dbRequestType, string UserName)
         {
-            FirebaseDB firebaseDB = new FirebaseDB($"{BaseURL}{dbRequestType}");
+            FirebaseDB firebaseDB = null;
+            switch (dbRequestType)
+            {
+                case DbRequestType.Users:
+                    firebaseDB = new FirebaseDB($"{BaseURL}");
+                    break;
+                case DbRequestType.Preferences:
+                    firebaseDB = new FirebaseDB($"{BaseURL}/{dbRequestType}");
+                    break;
+                default:
+                    break;
+            }
+            
             FirebaseDB firebaseDBTeams = firebaseDB.Node(UserName);
             var json = JsonConvert.SerializeObject(DataToAdd);
             FirebaseResponse getResponse = firebaseDBTeams.Put(json);

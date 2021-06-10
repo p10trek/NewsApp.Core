@@ -245,6 +245,17 @@ namespace NewsApp.Core
                 RaisePropertyChanged(() => DateFrom);
             }
         }
+        private DateTime _DateTo;
+        public DateTime DateTo
+        {
+            get => _DateTo;
+            set
+            {
+                _DateTo = value;
+                RaisePropertyChanged(() => DateTo);
+            }
+        }
+        
         private bool _loginPanelVisibility;
         public bool LoginPanelVisibility
         {
@@ -375,6 +386,16 @@ namespace NewsApp.Core
                 RaisePropertyChanged(() => SelectedItem);
             }
         }
+        private int _Limit;
+        public int Limit
+        {
+            get => _Limit;
+            set
+            {
+                _Limit = value;
+                RaisePropertyChanged(() => Limit);
+            }
+        }
         private bool _IsWebBrowserVisible;
         public bool IsWebBrowserVisible
         {
@@ -395,7 +416,16 @@ namespace NewsApp.Core
                 RaisePropertyChanged(() => SelectedURL);
             }
         }
-
+        private bool _IsCustomSetVisible;
+        public bool IsCustomSetVisible
+        {
+            get => _IsCustomSetVisible;
+            set
+            {
+                _IsCustomSetVisible = value;
+                RaisePropertyChanged(() => IsCustomSetVisible);
+            }
+        }
         public IMvxCommand DoWorkCommand => new MvxCommand(SearchNews, () => true);
         public IMvxCommand SavePreferencesCommand => new MvxCommand(SavePreferences, () => true);
         public IMvxCommand ShowPreferencesCommand => new MvxCommand(()=>ShowMenu("Preferences"), () => true);
@@ -407,27 +437,30 @@ namespace NewsApp.Core
         public IMvxCommand SignInCommand => new MvxCommand(SignIn,() => true);
         public IMvxCommand AddFavoritesCommand => new MvxCommand(AddFavorites, () => true);
         public IMvxCommand ShowBrowserCommand => new MvxCommand(ShowBrowser, () => true);
+        public IMvxCommand LogOutCommand => new MvxCommand(LogOut, () => true);
+        public IMvxCommand BackToListCommand => new MvxCommand(BackToList, () => true); 
         #endregion
 
         private void SearchNews()
         {
-            
             LoginPanelVisibility = false;
             //ResultPanelVisibility = true;
             IRequestModel requestModel = new RequestModel();
-            
             requestModel.Categories = AddCategories();
-            if (!String.IsNullOrEmpty(Domains))
-            requestModel.domains =  Domains;
-            if (!String.IsNullOrEmpty(Language))
-            requestModel.language = Language;
-            requestModel.published_after = DateFrom;
-            if (!String.IsNullOrEmpty(Search))
-                requestModel.Search = Search;
+            if (!String.IsNullOrEmpty(this.Domains))
+            requestModel.domains = this.Domains;
+            if (!String.IsNullOrEmpty(this.Language))
+            requestModel.language = this.Language;
+            requestModel.published_after = this.DateTo;
+            if (!String.IsNullOrEmpty(this.Search))
+                requestModel.Search = this.Search;
+            if (!String.IsNullOrEmpty(this.Limit.ToString()))
+                requestModel.Limit = this.Limit;
             requestModel.Timeout = -1;
-            requestModel.Limit = 5;
-            //todo: create cofig file and read token from it
+
+#if DEBUG
             requestModel.Token = "HgcpXI8z8J7yLHOCfRxpluxoGgUA7zYbGmq5PdAR";
+#endif
             requestModel.Url = "https://api.thenewsapi.com/v1/news/all";
             var result = services.GetNews(requestModel);
             AllNews.Rootobject allNews =  JsonReader<AllNews.Rootobject>.JsonDeserialize(result.Content);
@@ -441,22 +474,29 @@ namespace NewsApp.Core
             IsWebBrowserVisible = true;
             SelectedURL = new Uri(NewsList[SelectedItem].url);
         }
+        private void BackToList()
+        {
+            IsWebBrowserVisible = false;
+            SelectedURL = new Uri("about:blank");
+            ResultPanelVisibility = true;
+        }
 
         public void SavePreferences()
         {
-            if (IsSignIn) {
-                var dll = GenericFactory<DLL>.CreateInstance("https://newsapp-292a3-default-rtdb.europe-west1.firebasedatabase.app/");
+            if (IsSignIn) 
+            {
+                var dll = GenericFactory<DLL>.CreateInstance("https://newsapp-292a3-default-rtdb.europe-west1.firebasedatabase.app/Users/{node}");
                 var preferencse = new Preferences
                 {
                     Categories = AddCategories(),
                     domains = this.Domains,
-                    //Limit = this.Limit,
+                    Limit = this.Limit,
                     published_after = this.DateFrom,
-                    //published_before = this.DataTo,
+                    published_before = this.DateTo,
                     language = this.Language,
                     Search = this.Search
                 };
-                if (dll.PutUserData(preferencse, DbRequestType.Users, this.Login));
+                if (dll.PutUserData(preferencse, DbRequestType.Preferences, this.Login));
             }
         }
         public void AddFavorites()
@@ -499,7 +539,7 @@ namespace NewsApp.Core
         }
         private void SignIn()
         {
-            #region checking textboxes content
+#region checking textboxes content
             if (String.IsNullOrEmpty(Login))
             {
                 LoginMsg = "Login is empty";
@@ -518,66 +558,110 @@ namespace NewsApp.Core
             {
                 PasswordMsg = "";
             }
-            #endregion
+#endregion
 
-            var pass = BCrypt.Net.BCrypt.HashPassword(new System.Net.NetworkCredential(string.Empty, this.Password).Password);
-            //todo sprawdz konstruktor z parametrem
-            var dll = GenericFactory<DLL>.CreateInstance("https://newsapp-292a3-default-rtdb.europe-west1.firebasedatabase.app/");
+            var dll = GenericFactory<DLL>.CreateInstance("https://newsapp-292a3-default-rtdb.europe-west1.firebasedatabase.app/Users/{node}");
             using (FirebaseGetUserResponse user = dll.GetUserData(DbRequestType.Users, Login))
             {
 
-                if (user == null)
+                if (user?.Credentials == null)
                 {
 
                     FirebaseGetUserResponse userToAdd = new FirebaseGetUserResponse
                     {
-                        credentials = new FirebaseGetUserResponse.Credentials
+                        Credentials = new FirebaseGetUserResponse.Credentials_
                         {
                             password = BCrypt.Net.BCrypt.HashPassword(new System.Net.NetworkCredential(string.Empty, this.Password).Password),
                             token = this.Token,
                             user = this.Login
                         },
-                        preferences = new FirebaseGetUserResponse.Preferences
+                        Preferences = new FirebaseGetUserResponse.Preferences_
                         {
                             categories = AddCategories(),
                             search = this.Search,
                             language = this.Language,
-                            //limit = 
-                            published_after = this.DateFrom,
-                            //published_before = this.DateTo,
-                            domain = this.Domains,
+                            published_after = DateTime.Now.AddYears(-20),
+                            published_before = DateTime.Now.AddYears(1),
+                            domain = this.Domains
                         }
                     };
                     if (dll.PutUserData(userToAdd, DbRequestType.Users, this.Login))
+                    {
+
+                        IsSignIn = true;
+                        if (userToAdd?.Preferences != null)
+                        {
+                            SetLocalCategories(userToAdd.Preferences.categories);     
+                            this.Domains = userToAdd.Preferences.domain;
+                            this.Language = userToAdd.Preferences.language;
+                            this.Limit = userToAdd.Preferences.limit;
+                            this.DateTo = userToAdd.Preferences.published_after;
+                            this.DateFrom = userToAdd.Preferences.published_before; 
+                        }
+                        IsSignIn = true;
+                        IsSignInVisible = false;
+                        IsSignInButtonVisible = false;
+                        IsLogOutButtonVisible = true;
+                        IsCustomSetVisible = true;
                         LoginMsg = "Użytkownik został dodany";
+                    } 
                 }
                 else
                 {//todo zapis preferencji niszczy poświadczenia i reszte
                     if (BCrypt.Net.BCrypt.Verify(new System.Net.NetworkCredential(string.Empty, this.Password).Password
-                       , user.credentials.password))
+                       , user.Credentials.password))
                     {
-                        Debug.WriteLine("haslo sie zgadza");
                         IsSignIn = true;
-                        SetLocalCategories(user.preferences.categories);
-                        this.Domains = user.preferences.domain;
-                        this.Language = user.preferences.language;
-                        //this.limit = user.preferences.limit;
-                        //this.ToDate = user.preferences.published_after;
-                        this.DateFrom = user.preferences.published_before;
+                        SetLocalCategories(user.Preferences.categories);
+                        this.Domains = user.Preferences.domain;
+                        this.Language = user.Preferences.language;
+                        this.Limit = user.Preferences.limit;
+                        this.DateTo = user.Preferences.published_after;
+                        this.DateFrom = user.Preferences.published_before;
                         IsSignInVisible = false;
                         IsSignInButtonVisible = false;
                         IsLogOutButtonVisible = true;
+                        IsCustomSetVisible = true;
                     }
                     else
                     {
                         Debug.WriteLine("haslo sie nie zgadza");
                         LoginMsg = "Niepoprawny login i/lub hasło";
-                        IsSignIn = false;
+                        LogOut();
                     }
                 }
+                //todo: wyczysc wlasciwosci z poswiadczeniami
             }
         }
-
+        private void LogOut()
+        {
+            this.Business = false;
+            this.DateFrom = new DateTime();
+            this.Domains = String.Empty;
+            this.Entertainment = false;
+            this.Food = false;
+            this.General = false;
+            this.Health = false;
+            this.Language = String.Empty;
+            this.Login = String.Empty;
+            this.Password = String.Empty;
+            this.Politics = false;
+            this.Science = false;
+            this.Search = String.Empty;
+            this.Sports = false;
+            this.Tech = false;
+            this.Travel = false;
+            this.IsSignIn = false;
+            this.IsCustomSetVisible = false;
+            this.IsLogOutButtonVisible = false;
+            this.IsQSearchVisible = false;
+            this.IsSignInButtonVisible = true;
+            this.IsFavoritesVisible = false;
+            this.IsHistoryVisible = false;
+            this.IsASearchVisible = false;
+            this.IsPreferencesVisible = false;
+            this.IsSignInVisible = true;
+        }
         public IMvxAsyncCommand DoAsyncWorkCommand => new MvxAsyncCommand(DoAsyncWorkAsync, () => true);
         private Task DoAsyncWorkAsync()
         {

@@ -38,7 +38,7 @@ namespace NewsApp.Core.DataBase
                 throw new FormatException("Node must not contain '/', use NodePath instead.");
             }
 
-            return new FirebaseDB(this.RootNode + '/' + node);
+            return new FirebaseDB(this.RootNode.Replace("{node}",node));
         }
 
         /// <summary>  
