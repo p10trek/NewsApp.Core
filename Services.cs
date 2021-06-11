@@ -94,7 +94,7 @@ namespace NewsApp.Core
                 var request = new RestRequest(Method.GET);
 
                 string datefrom = (requestModel.published_after == DateTime.MinValue ? DateTime.Now.AddYears(-20) : requestModel.published_after).ToString("yyyy-MM-dd");
-                string dateto = (requestModel.published_before == DateTime.MinValue ? DateTime.Now : requestModel.published_after).ToString("yyyy-MM-dd");
+                string dateto = (requestModel.published_before == DateTime.MinValue ? DateTime.Now : requestModel.published_before).ToString("yyyy-MM-dd");
 
                 if (String.IsNullOrEmpty(requestModel.Token))
                     throw new CustomException(ExceptionMessages.TokenIsEmpty, methodName);
