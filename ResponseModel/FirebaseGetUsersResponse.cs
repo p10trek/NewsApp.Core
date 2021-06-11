@@ -23,7 +23,7 @@ namespace NewsApp.Core.ResponseModel
                     {
                         password = String.Empty,
                         token = String.Empty,
-                        user = String.Empty
+                        login = String.Empty
                     };
                     user.Favorites = new string[] { string.Empty };
                     user.History = new string[] { string.Empty };

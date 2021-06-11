@@ -15,7 +15,7 @@ namespace NewsApp.Core.ResponseModel
         {
             public string password { get; set; }
             public string token { get; set; }
-            public string user { get; set; }
+            public string login { get; set; }
         }
 
         public class Preferences_
@@ -44,7 +44,7 @@ namespace NewsApp.Core.ResponseModel
                 {
                     password = String.Empty,
                     token = String.Empty,
-                    user = String.Empty
+                    login = String.Empty
                 };
                 this.Favorites = new string[] { string.Empty };
                 this.History = new string[] { string.Empty };

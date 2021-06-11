@@ -336,6 +336,16 @@ namespace NewsApp.Core
                 RaisePropertyChanged(() => IsSignInVisible);
             }
         }
+        private bool _IsFavListVisible;
+        public bool IsFavListVisible
+        {
+            get => _IsFavListVisible;
+            set
+            {
+                _IsFavListVisible = value;
+                RaisePropertyChanged(() => IsFavListVisible);
+            }
+        }
         private bool _IsSignInButtonVisible = true;
         public bool IsSignInButtonVisible
         {
@@ -417,6 +427,58 @@ namespace NewsApp.Core
                 RaisePropertyChanged(() => SelectedURL);
             }
         }
+        private List<string> _FavoritesList;
+        public List<string> FavoritesList
+        {
+            get => _FavoritesList;
+            set
+            {
+                _FavoritesList = value;
+                RaisePropertyChanged(() => FavoritesList);
+            }
+        }
+        private int _SelectedFav;
+        public int SelectedFav
+        {
+            get => _SelectedFav;
+            set
+            {
+                _SelectedFav = value;
+                RaisePropertyChanged(() => SelectedFav);
+                ShowFavorite();
+            }
+        }
+        private int _SelectedHist;
+        public int SelectedHist
+        {
+            get => _SelectedHist;
+            set
+            {
+                _SelectedHist = value;
+                RaisePropertyChanged(() => SelectedHist);
+                ShowHistoricalSearch();
+            }
+        }
+        private List<string> _HistoryList;
+        public List<string> HistoryList
+        {
+            get => _HistoryList;
+            set
+            {
+                _HistoryList = value;
+                RaisePropertyChanged(() => HistoryList);
+            }
+        }
+        private bool _IsHistoryListVisible;
+        public bool IsHistoryListVisible
+        {
+            get => _IsHistoryListVisible;
+            set
+            {
+                _IsHistoryListVisible = value;
+                RaisePropertyChanged(() => IsHistoryListVisible);
+            }
+        }
         private bool _IsCustomSetVisible;
         public bool IsCustomSetVisible
         {
@@ -427,6 +489,29 @@ namespace NewsApp.Core
                 RaisePropertyChanged(() => IsCustomSetVisible);
             }
         }
+
+        private bool _IsWebViewMenuVisible;
+        public bool IsWebViewMenuVisible
+        {
+            get => _IsWebViewMenuVisible;
+            set
+            {
+                _IsWebViewMenuVisible = value;
+                RaisePropertyChanged(() => IsWebViewMenuVisible);
+            }
+        }
+
+        private bool _IsFavViewMenuVisible;
+        public bool IsFavViewMenuVisible
+        {
+            get => _IsFavViewMenuVisible;
+            set
+            {
+                _IsFavViewMenuVisible = value;
+                RaisePropertyChanged(() => IsFavViewMenuVisible);
+            }
+        }
+
         public IMvxCommand DoWorkCommand => new MvxCommand(SearchNews, () => true);
         public IMvxCommand SavePreferencesCommand => new MvxCommand(SavePreferences, () => true);
         public IMvxCommand ShowPreferencesCommand => new MvxCommand(()=>ShowMenu("Preferences"), () => true);
@@ -439,7 +524,9 @@ namespace NewsApp.Core
         public IMvxCommand AddToFavoritesCommand => new MvxCommand(AddToFavorites, () => true);
         public IMvxCommand ShowBrowserCommand => new MvxCommand(ShowBrowser, () => true);
         public IMvxCommand LogOutCommand => new MvxCommand(LogOut, () => true);
-        public IMvxCommand BackToListCommand => new MvxCommand(BackToList, () => true); 
+        public IMvxCommand BackToListCommand => new MvxCommand(BackToList, () => true);
+        public IMvxCommand BackToFavoritesCommand => new MvxCommand(BackToFavorites, () => true);
+        
         #endregion
 
         private void SearchNews()
@@ -471,20 +558,44 @@ namespace NewsApp.Core
             Fill(allNews);
             ResultPanelVisibility = true;
         }
+        public void ShowHistoricalSearch()
+        {
+            var result = services.GetNews(HistoryList[SelectedHist]);
+            AllNews.Rootobject allNews = JsonReader<AllNews.Rootobject>.JsonDeserialize(result.Content);
+            Fill(allNews);
+            IsHistoryListVisible = false;
+            ResultPanelVisibility = true;
+        }
         public void ShowBrowser()
         {
             Debug.WriteLine(SelectedItem);
             ResultPanelVisibility = false;
+
             IsWebBrowserVisible = true;
+            IsWebViewMenuVisible = true;
             _selectedTMP = SelectedItem;
             SelectedURL = new Uri(NewsList[SelectedItem].url);
-
+        }
+        public void ShowFavorite()
+        {
+            Debug.WriteLine(SelectedItem);
+            ResultPanelVisibility = false;
+            IsFavListVisible = false;
+            IsFavViewMenuVisible = true;
+            IsWebBrowserVisible = true;
+            SelectedURL = new Uri(FavoritesList[SelectedFav]);
         }
         private void BackToList()
         {
             IsWebBrowserVisible = false;
             SelectedURL = new Uri("about:blank");
             ResultPanelVisibility = true;
+        }
+        private void BackToFavorites()
+        {
+            IsWebBrowserVisible = false;
+            SelectedURL = new Uri("about:blank");
+            IsFavListVisible = true;
         }
 
         public void SavePreferences()
@@ -512,9 +623,11 @@ namespace NewsApp.Core
             var data = dll.GetUserInfo(this.Login, DbRequestType.Favorites);
             if (data != null)
                 fav.AddRange(data);
-
-            fav.Add(NewsList[_selectedTMP].url);
-            dll.PutUserData(fav, DbRequestType.Favorites, this.Login);
+            if (!fav.Contains(NewsList[_selectedTMP].url))
+            {
+                fav.Add(NewsList[_selectedTMP].url);
+                dll.PutUserData(fav, DbRequestType.Favorites, this.Login);
+            }
         }
 
         private void ShowMenu(string visibleMenu)
@@ -525,25 +638,46 @@ namespace NewsApp.Core
             IsFavoritesVisible = false;
             IsHistoryVisible = false;
             IsSignInVisible = false;
-
+            IsFavListVisible = false;
+            IsHistoryListVisible = false;
             switch (visibleMenu)
             {
                 case "Preferences":
+                    ResultPanelVisibility = true;
                     IsPreferencesVisible = true;
                     break;
                 case "QSearch":
+                    ResultPanelVisibility = true;
                     IsQSearchVisible = true;
                     break;
                 case "ASearch":
+                    ResultPanelVisibility = true;
                     IsASearchVisible = true;
                     break;
                 case "Favorites":
+                    ResultPanelVisibility = false;
+                    NewsList.Clear();
+                    IsWebBrowserVisible = false;
+                    SelectedURL = new Uri("about:blank");
+                    ResultPanelVisibility = false;
                     IsFavoritesVisible = true;
+                    var dll = GenericFactory<DLL>.CreateInstance("https://newsapp-292a3-default-rtdb.europe-west1.firebasedatabase.app/Users/{node}");
+                    this.FavoritesList = dll.GetUserInfo(this.Login, DbRequestType.Favorites);
+                    IsFavListVisible = true;
                     break;
                 case "History":
+                    ResultPanelVisibility = false;
+                    NewsList.Clear();
+                    IsWebBrowserVisible = false;
+                    SelectedURL = new Uri("about:blank");
+                    ResultPanelVisibility = false;
                     IsHistoryVisible = true;
+                    var dllh = GenericFactory<DLL>.CreateInstance("https://newsapp-292a3-default-rtdb.europe-west1.firebasedatabase.app/Users/{node}");
+                    this.HistoryList = dllh.GetUserInfo(this.Login, DbRequestType.History);
+                    IsHistoryListVisible = true;
                     break;
                 case "SignIn":
+                    ResultPanelVisibility = true;
                     IsSignInVisible = true;
                     break;
                 default:
@@ -586,7 +720,7 @@ namespace NewsApp.Core
                         {
                             password = BCrypt.Net.BCrypt.HashPassword(new System.Net.NetworkCredential(string.Empty, this.Password).Password),
                             token = this.Token,
-                            user = this.Login
+                            login = this.Login
                         },
                         Preferences = new FirebaseGetUserResponse.Preferences_
                         {

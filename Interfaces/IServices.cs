@@ -9,5 +9,6 @@ namespace NewsApp.Core.Interfaces
     public interface IServices
     {
         IRestResponse GetNews(IRequestModel requestModel, String userLogin = "");
+        IRestResponse GetNews(string uri);
     }
 }

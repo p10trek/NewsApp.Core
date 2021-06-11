@@ -5,6 +5,7 @@ using RestSharp;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -52,12 +53,24 @@ namespace NewsApp.Core
                     if (data != null)
                         fav.AddRange(data);
 
-                    fav.Add(response.ResponseUri.OriginalString);
-                    dll.PutUserData(fav, DbRequestType.History, userName);
+                    if (!fav.Contains(response.ResponseUri.OriginalString))
+                    {
+                        fav.Add(response.ResponseUri.OriginalString);
+                        dll.PutUserData(fav, DbRequestType.History, userName);
+                    }
                 }
             }
             Debug.WriteLine(response.Content);
             return response;
         }
+        public IRestResponse GetNews(string uri)
+        {
+            var client = new RestClient(uri);
+            client.Timeout = -1;
+            var request = new RestRequest(Method.GET);
+            return client.Execute(request);
+
+        }
+
     }
 }
