@@ -9,6 +9,7 @@ namespace NewsApp.Core.Interfaces
     public interface IServices
     {
         IRestResponse GetNews(IRequestModel requestModel, String userLogin = "");
+        Task<IRestResponse> GetNewsAsync(IRequestModel requestModel, string userName = "");
         IRestResponse GetNews(string uri);
     }
 }

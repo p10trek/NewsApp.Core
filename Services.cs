@@ -15,53 +15,60 @@ namespace NewsApp.Core
     {
         public IRestResponse GetNews(IRequestModel requestModel, string userName = "")
         {
-            string methodName = GenericFactory<RuntimeInfo>
-                                .CreateInstance()
-                                .GetMethodName();
-
-            if (String.IsNullOrEmpty(requestModel.Url))
-                throw new CustomException(ExceptionMessages.UrlIsEmpty, methodName);
-
-            var client = new RestClient(requestModel.Url);
-            client.Timeout = requestModel.Timeout;
-            var request = new RestRequest(Method.GET);
-
-            if (String.IsNullOrEmpty(requestModel.Token))
-                throw new CustomException(ExceptionMessages.TokenIsEmpty, methodName);
-
-            request.AddQueryParameter("api_token", requestModel.Token);
-            if (!String.IsNullOrEmpty(requestModel.Categories))
-                request.AddQueryParameter("categories", requestModel.Categories);
-            if (!String.IsNullOrEmpty(requestModel.Search))
-                request.AddQueryParameter("search", requestModel.Search);
-                request.AddQueryParameter("limit", requestModel.Limit.ToString());
-            if (!String.IsNullOrEmpty(requestModel.language))
-                request.AddQueryParameter("language", requestModel.language);
-            request.AddQueryParameter("published_after", requestModel.published_after.ToString("yyyy-MM-dd"));
-            if (!String.IsNullOrEmpty(requestModel.domains))
-                request.AddQueryParameter("domains", requestModel.domains);
-            IRestResponse response = client.Execute(request);
-
-            if (!String.IsNullOrEmpty(userName))
+            try
             {
-                if (!String.IsNullOrEmpty(response.ResponseUri.OriginalString))
-                {
-                    var dll = GenericFactory<DLL>.CreateInstance("https://newsapp-292a3-default-rtdb.europe-west1.firebasedatabase.app/Users/{node}");
-                    List<string> fav = new List<string>();
-                    
-                    var data = dll.GetUserInfo(userName, DbRequestType.History);
-                    if (data != null)
-                        fav.AddRange(data);
+                string methodName = GenericFactory<RuntimeInfo>
+                                    .CreateInstance()
+                                    .GetMethodName();
 
-                    if (!fav.Contains(response.ResponseUri.OriginalString))
+                if (String.IsNullOrEmpty(requestModel.Url))
+                    throw new CustomException(ExceptionMessages.UrlIsEmpty, methodName);
+
+                var client = new RestClient(requestModel.Url);
+                client.Timeout = requestModel.Timeout;
+                var request = new RestRequest(Method.GET);
+
+                if (String.IsNullOrEmpty(requestModel.Token))
+                    throw new CustomException(ExceptionMessages.TokenIsEmpty, methodName);
+
+                request.AddQueryParameter("api_token", requestModel.Token);
+                if (!String.IsNullOrEmpty(requestModel.Categories))
+                    request.AddQueryParameter("categories", requestModel.Categories);
+                if (!String.IsNullOrEmpty(requestModel.Search))
+                    request.AddQueryParameter("search", requestModel.Search);
+                request.AddQueryParameter("limit", requestModel.Limit.ToString());
+                if (!String.IsNullOrEmpty(requestModel.language))
+                    request.AddQueryParameter("language", requestModel.language);
+                request.AddQueryParameter("published_after", requestModel.published_after.ToString("yyyy-MM-dd"));
+                if (!String.IsNullOrEmpty(requestModel.domains))
+                    request.AddQueryParameter("domains", requestModel.domains);
+                IRestResponse response = client.Execute(request);
+
+                if (!String.IsNullOrEmpty(userName))
+                {
+                    if (!String.IsNullOrEmpty(response.ResponseUri.OriginalString))
                     {
-                        fav.Add(response.ResponseUri.OriginalString);
-                        dll.PutUserData(fav, DbRequestType.History, userName);
+                        var dll = GenericFactory<DLL>.CreateInstance("https://newsapp-292a3-default-rtdb.europe-west1.firebasedatabase.app/Users/{node}");
+                        List<string> fav = new List<string>();
+
+                        var data = dll.GetUserInfo(userName, DbRequestType.History);
+                        if (data != null)
+                            fav.AddRange(data);
+
+                        if (!fav.Contains(response.ResponseUri.OriginalString))
+                        {
+                            fav.Add(response.ResponseUri.OriginalString);
+                            dll.PutUserData(fav, DbRequestType.History, userName);
+                        }
                     }
                 }
+                Debug.WriteLine(response.Content);
+                return response;
             }
-            Debug.WriteLine(response.Content);
-            return response;
+            catch 
+            {
+                return null;
+            }
         }
         public IRestResponse GetNews(string uri)
         {
@@ -71,6 +78,68 @@ namespace NewsApp.Core
             return client.Execute(request);
 
         }
+        public async Task<IRestResponse> GetNewsAsync(IRequestModel requestModel, string userName = "")
+        {
+            try
+            {
+                string methodName = GenericFactory<RuntimeInfo>
+                                    .CreateInstance()
+                                    .GetMethodName();
 
+                if (String.IsNullOrEmpty(requestModel.Url))
+                    throw new CustomException(ExceptionMessages.UrlIsEmpty, methodName);
+
+                var client = new RestClient(requestModel.Url);
+                client.Timeout = requestModel.Timeout;
+                var request = new RestRequest(Method.GET);
+
+                string datefrom = (requestModel.published_after == DateTime.MinValue ? DateTime.Now.AddYears(-20) : requestModel.published_after).ToString("yyyy-MM-dd");
+                string dateto = (requestModel.published_before == DateTime.MinValue ? DateTime.Now : requestModel.published_after).ToString("yyyy-MM-dd");
+
+                if (String.IsNullOrEmpty(requestModel.Token))
+                    throw new CustomException(ExceptionMessages.TokenIsEmpty, methodName);
+
+                request.AddQueryParameter("api_token", requestModel.Token);
+                if (!String.IsNullOrEmpty(requestModel.Categories))
+                    request.AddQueryParameter("categories", requestModel.Categories);
+                if (!String.IsNullOrEmpty(requestModel.Search))
+                    request.AddQueryParameter("search", requestModel.Search);
+                request.AddQueryParameter("limit", requestModel.Limit.ToString());
+                if (!String.IsNullOrEmpty(requestModel.language))
+                    request.AddQueryParameter("language", requestModel.language);
+
+                request.AddQueryParameter("published_after", datefrom);
+                request.AddQueryParameter("published_before", dateto);
+
+                if (!String.IsNullOrEmpty(requestModel.domains))
+                    request.AddQueryParameter("domains", requestModel.domains);
+                IRestResponse response = await client.ExecuteAsync(request);
+
+                if (!String.IsNullOrEmpty(userName))
+                {
+                    if (!String.IsNullOrEmpty(response?.ResponseUri?.OriginalString))
+                    {
+                        var dll = GenericFactory<DLL>.CreateInstance("https://newsapp-292a3-default-rtdb.europe-west1.firebasedatabase.app/Users/{node}");
+                        List<string> fav = new List<string>();
+
+                        var data = dll.GetUserInfo(userName, DbRequestType.History);
+                        if (data != null)
+                            fav.AddRange(data);
+
+                        if (!fav.Contains(response.ResponseUri.OriginalString))
+                        {
+                            fav.Add(response.ResponseUri.OriginalString);
+                            dll.PutUserData(fav, DbRequestType.History, userName);
+                        }
+                    }
+                }
+                Debug.WriteLine(response.Content);
+                return response;
+            }
+            catch(Exception ex)
+            {
+                throw ex;
+            }
+        }
     }
 }

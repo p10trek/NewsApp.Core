@@ -34,6 +34,8 @@ namespace NewsApp.Core
         }
 
         #region PROPERTIES
+        public ObservableCollection<AllNewsModel> NewsList { get; set; } = new ObservableCollection<AllNewsModel>();
+
         private string _response;
         public string Response
         {
@@ -512,7 +514,6 @@ namespace NewsApp.Core
             }
         }
 
-        public IMvxCommand DoWorkCommand => new MvxCommand(SearchNews, () => true);
         public IMvxCommand SavePreferencesCommand => new MvxCommand(SavePreferences, () => true);
         public IMvxCommand ShowPreferencesCommand => new MvxCommand(()=>ShowMenu("Preferences"), () => true);
         public IMvxCommand ShowQSearchCommand => new MvxCommand(()=>ShowMenu("QSearch"), () => true);
@@ -526,47 +527,127 @@ namespace NewsApp.Core
         public IMvxCommand LogOutCommand => new MvxCommand(LogOut, () => true);
         public IMvxCommand BackToListCommand => new MvxCommand(BackToList, () => true);
         public IMvxCommand BackToFavoritesCommand => new MvxCommand(BackToFavorites, () => true);
-        
+        public IMvxAsyncCommand SearchNewsAsyncCommand => new MvxAsyncCommand(SearchNewsAsync, () => true);
+        public IMvxAsyncCommand QuickSearchNewsAsyncCommand => new MvxAsyncCommand(QuickSearchNewsAsync, () => true);
+        public IMvxAsyncCommand SimilarNewsAsyncCommand => new MvxAsyncCommand(SimilarNewsAsync, () => true);
         #endregion
 
-        private void SearchNews()
+        private async Task SimilarNewsAsync()
         {
             LoginPanelVisibility = false;
-            //ResultPanelVisibility = true;
             IRequestModel requestModel = new RequestModel();
-            requestModel.Categories = AddCategories();
-            if (!String.IsNullOrEmpty(this.Domains))
-            requestModel.domains = this.Domains;
-            if (!String.IsNullOrEmpty(this.Language))
-            requestModel.language = this.Language;
-            
-            requestModel.published_after = this.DateFrom;
-            requestModel.published_before = this.DateTo;
+            requestModel.Timeout = -1;
+            requestModel.Limit = 5;
+            requestModel.Token = this.Token;
+//#if DEBUG
+//            requestModel.Token = "HgcpXI8z8J7yLHOCfRxpluxoGgUA7zYbGmq5PdAR";
+//#endif
+            requestModel.Url = $"https://api.thenewsapi.com/v1/news/similar/{NewsList[_selectedTMP].NewsGuid}";
+            string login = IsSignIn == true ? Login : String.Empty;
+            try 
+            { 
+                var result = await services.GetNewsAsync(requestModel, login);
+                AllNews.Rootobject allNews = JsonReader<AllNews.Rootobject>.JsonDeserialize(result?.Content);
+                if (allNews != null)
+                    Fill(allNews);
+                ResultPanelVisibility = true;
+            }
+            catch
+            {
+                return;
+            }
+        }
+
+        private async Task QuickSearchNewsAsync()
+        {
+            LoginPanelVisibility = false;
+            IRequestModel requestModel = new RequestModel();
+            requestModel.Timeout = -1;
+            requestModel.Limit = 5;
             if (!String.IsNullOrEmpty(this.Search))
                 requestModel.Search = this.Search;
-            if (!String.IsNullOrEmpty(this.Limit.ToString()))
-                requestModel.Limit = this.Limit;
-            requestModel.Timeout = -1;
 
-#if DEBUG
-            requestModel.Token = "HgcpXI8z8J7yLHOCfRxpluxoGgUA7zYbGmq5PdAR";
-#endif
+            if(IsCustomSettings)
+                requestModel = CustomSettings(requestModel);
+            requestModel.Token = this.Token;
+//#if DEBUG
+//            requestModel.Token = "HgcpXI8z8J7yLHOCfRxpluxoGgUA7zYbGmq5PdAR";
+//#endif
             requestModel.Url = "https://api.thenewsapi.com/v1/news/all";
             string login = IsSignIn == true ? Login : String.Empty;
-            var result = services.GetNews(requestModel, login);
-            AllNews.Rootobject allNews =  JsonReader<AllNews.Rootobject>.JsonDeserialize(result.Content);
-            Fill(allNews);
-            ResultPanelVisibility = true;
+            try 
+            { 
+                var result = await services.GetNewsAsync(requestModel, login);        
+                AllNews.Rootobject allNews = JsonReader<AllNews.Rootobject>.JsonDeserialize(result?.Content);
+                if (allNews != null)
+                    Fill(allNews);
+                    ResultPanelVisibility = true;
+            }
+            catch
+            {
+                return;
+            }
         }
-        public void ShowHistoricalSearch()
+        private async Task SearchNewsAsync()
         {
-            var result = services.GetNews(HistoryList[SelectedHist]);
-            AllNews.Rootobject allNews = JsonReader<AllNews.Rootobject>.JsonDeserialize(result.Content);
-            Fill(allNews);
-            IsHistoryListVisible = false;
-            ResultPanelVisibility = true;
+            
+            LoginPanelVisibility = false;
+            IRequestModel requestModel = new RequestModel();
+            requestModel.Timeout = -1;
+            requestModel.Limit = 5;
+            if (!String.IsNullOrEmpty(this.Search))
+                requestModel.Search = this.Search;
+
+            requestModel = CustomSettings(requestModel);
+            requestModel.Token = this.Token;
+
+//#if DEBUG
+//            requestModel.Token = "HgcpXI8z8J7yLHOCfRxpluxoGgUA7zYbGmq5PdAR";
+//#endif
+            requestModel.Url = "https://api.thenewsapi.com/v1/news/all";
+            string login = IsSignIn == true ? Login : String.Empty;
+            try
+            {
+                var result = await services.GetNewsAsync(requestModel, login);
+                AllNews.Rootobject allNews = JsonReader<AllNews.Rootobject>.JsonDeserialize(result?.Content);
+                if (allNews != null)
+                    Fill(allNews);
+                ResultPanelVisibility = true;
+            }
+            catch
+            {
+                return;
+            }
         }
-        public void ShowBrowser()
+        private IRequestModel CustomSettings(IRequestModel requestModel)
+        {
+            requestModel.Categories = AddCategories();
+            if (!String.IsNullOrEmpty(this.Domains))
+                requestModel.domains = this.Domains;
+            if (!String.IsNullOrEmpty(this.Language))
+                requestModel.language = this.Language;
+            requestModel.published_after = this.DateFrom;
+            requestModel.published_before = this.DateTo;
+            if (!String.IsNullOrEmpty(this.Limit.ToString()))
+                requestModel.Limit = this.Limit;
+            return requestModel;
+        }
+        private void ShowHistoricalSearch()
+        {
+            try
+            {
+                var result = services.GetNews(HistoryList[SelectedHist]);
+                AllNews.Rootobject allNews = JsonReader<AllNews.Rootobject>.JsonDeserialize(result.Content);
+                Fill(allNews);
+                IsHistoryListVisible = false;
+                ResultPanelVisibility = true;
+            }
+            catch
+            {
+                return;
+            }
+        }
+        private void ShowBrowser()
         {
             Debug.WriteLine(SelectedItem);
             ResultPanelVisibility = false;
@@ -576,14 +657,15 @@ namespace NewsApp.Core
             _selectedTMP = SelectedItem;
             SelectedURL = new Uri(NewsList[SelectedItem].url);
         }
-        public void ShowFavorite()
+        private void ShowFavorite()
         {
-            Debug.WriteLine(SelectedItem);
-            ResultPanelVisibility = false;
-            IsFavListVisible = false;
-            IsFavViewMenuVisible = true;
-            IsWebBrowserVisible = true;
-            SelectedURL = new Uri(FavoritesList[SelectedFav]);
+                Debug.WriteLine(SelectedItem);
+                ResultPanelVisibility = false;
+                IsFavListVisible = false;
+                IsFavViewMenuVisible = true;
+                IsWebBrowserVisible = true;
+                if (SelectedFav > -1)
+                    SelectedURL = new Uri(FavoritesList[SelectedFav]);
         }
         private void BackToList()
         {
@@ -598,7 +680,7 @@ namespace NewsApp.Core
             IsFavListVisible = true;
         }
 
-        public void SavePreferences()
+        private void SavePreferences()
         {
             if (IsSignIn) 
             {
@@ -616,17 +698,24 @@ namespace NewsApp.Core
                 if (dll.PutUserData(preferencse, DbRequestType.Preferences, this.Login));
             }
         }
-        public void AddToFavorites()
+        private void AddToFavorites()
         {
-            List<string> fav = new List<string>();
-            var dll = GenericFactory<DLL>.CreateInstance("https://newsapp-292a3-default-rtdb.europe-west1.firebasedatabase.app/Users/{node}");
-            var data = dll.GetUserInfo(this.Login, DbRequestType.Favorites);
-            if (data != null)
-                fav.AddRange(data);
-            if (!fav.Contains(NewsList[_selectedTMP].url))
+            try
             {
-                fav.Add(NewsList[_selectedTMP].url);
-                dll.PutUserData(fav, DbRequestType.Favorites, this.Login);
+                List<string> fav = new List<string>();
+                var dll = GenericFactory<DLL>.CreateInstance("https://newsapp-292a3-default-rtdb.europe-west1.firebasedatabase.app/Users/{node}");
+                var data = dll.GetUserInfo(this.Login, DbRequestType.Favorites);
+                if (data != null)
+                    fav.AddRange(data);
+                if (!fav.Contains(NewsList[_selectedTMP].url))
+                {
+                    fav.Add(NewsList[_selectedTMP].url);
+                    dll.PutUserData(fav, DbRequestType.Favorites, this.Login);
+                }
+            }
+            catch
+            {
+                return;
             }
         }
 
@@ -686,99 +775,110 @@ namespace NewsApp.Core
         }
         private void SignIn()
         {
-#region checking textboxes content
-            if (String.IsNullOrEmpty(Login))
+            try
             {
-                LoginMsg = "Login is empty";
-                return;
-            }
-            else
-            {
-                LoginMsg = "";
-            }
-            if (String.IsNullOrEmpty(Password))
-            {
-                PasswordMsg = "Password is empty";
-                return;
-            }
-            else
-            {
-                PasswordMsg = "";
-            }
-#endregion
-
-            var dll = GenericFactory<DLL>.CreateInstance("https://newsapp-292a3-default-rtdb.europe-west1.firebasedatabase.app/Users/{node}");
-            using (FirebaseGetUserResponse user = dll.GetUserData(DbRequestType.Users, Login))
-            {
-
-                if (user?.Credentials == null)
+                #region checking textboxes content
+                if (String.IsNullOrEmpty(Login))
                 {
-
-                    FirebaseGetUserResponse userToAdd = new FirebaseGetUserResponse
-                    {
-                        Credentials = new FirebaseGetUserResponse.Credentials_
-                        {
-                            password = BCrypt.Net.BCrypt.HashPassword(new System.Net.NetworkCredential(string.Empty, this.Password).Password),
-                            token = this.Token,
-                            login = this.Login
-                        },
-                        Preferences = new FirebaseGetUserResponse.Preferences_
-                        {
-                            categories = AddCategories(),
-                            search = this.Search,
-                            language = this.Language,
-                            published_after = DateTime.Now.AddYears(-20),
-                            published_before = DateTime.Now.AddYears(1),
-                            domain = this.Domains
-                        }
-                    };
-                    if (dll.PutUserData(userToAdd, DbRequestType.Users, this.Login))
-                    {
-
-                        IsSignIn = true;
-                        if (userToAdd?.Preferences != null)
-                        {
-                            SetLocalCategories(userToAdd.Preferences.categories);     
-                            this.Domains = userToAdd.Preferences.domain;
-                            this.Language = userToAdd.Preferences.language;
-                            this.Limit = userToAdd.Preferences.limit;
-                            this.DateTo = userToAdd.Preferences.published_before;
-                            this.DateFrom = userToAdd.Preferences.published_after;
-                        }
-                        IsSignIn = true;
-                        IsSignInVisible = false;
-                        IsSignInButtonVisible = false;
-                        IsLogOutButtonVisible = true;
-                        IsCustomSetVisible = true;
-                        LoginMsg = "Użytkownik został dodany";
-                    } 
+                    LoginMsg = "Login is empty";
+                    return;
                 }
                 else
-                {//todo zapis preferencji niszczy poświadczenia i reszte
-                    if (BCrypt.Net.BCrypt.Verify(new System.Net.NetworkCredential(string.Empty, this.Password).Password
-                       , user.Credentials.password))
+                {
+                    LoginMsg = "";
+                }
+                if (String.IsNullOrEmpty(Password))
+                {
+                    PasswordMsg = "Password is empty";
+                    return;
+                }
+                else
+                {
+                    PasswordMsg = "";
+                }
+                #endregion
+
+                var dll = GenericFactory<DLL>.CreateInstance("https://newsapp-292a3-default-rtdb.europe-west1.firebasedatabase.app/Users/{node}");
+                using (FirebaseGetUserResponse user = dll.GetUserData(DbRequestType.Users, Login))
+                {
+
+                    if (user?.Credentials == null)
                     {
-                        IsSignIn = true;
-                        SetLocalCategories(user.Preferences.categories);
-                        this.Domains = user.Preferences.domain;
-                        this.Language = user.Preferences.language;
-                        this.Limit = user.Preferences.limit;
-                        this.DateTo = user.Preferences.published_before;
-                        this.DateFrom = user.Preferences.published_after;
-                        IsSignInVisible = false;
-                        IsSignInButtonVisible = false;
-                        IsLogOutButtonVisible = true;
-                        IsCustomSetVisible = true;
+
+                        FirebaseGetUserResponse userToAdd = new FirebaseGetUserResponse
+                        {
+                            Credentials = new FirebaseGetUserResponse.Credentials_
+                            {
+                                password = BCrypt.Net.BCrypt.HashPassword(new System.Net.NetworkCredential(string.Empty, this.Password).Password),
+                                token = this.Token,
+                                login = this.Login
+                            },
+                            Preferences = new FirebaseGetUserResponse.Preferences_
+                            {
+                                categories = AddCategories(),
+                                search = this.Search,
+                                language = this.Language,
+                                published_after = DateTime.Now.AddYears(-20),
+                                published_before = DateTime.Now.AddYears(1),
+                                domain = this.Domains
+                            }
+                        };
+                        if (dll.PutUserData(userToAdd, DbRequestType.Users, this.Login))
+                        {
+
+                            IsSignIn = true;
+                            if (userToAdd?.Preferences != null)
+                            {
+                                SetLocalCategories(userToAdd.Preferences.categories);
+                                this.Domains = userToAdd.Preferences.domain;
+                                this.Language = userToAdd.Preferences.language;
+                                this.Limit = userToAdd.Preferences.limit;
+                                this.DateTo = userToAdd.Preferences.published_before;
+                                this.DateFrom = userToAdd.Preferences.published_after;
+                            }
+                            IsSignIn = true;
+                            IsSignInVisible = false;
+                            IsSignInButtonVisible = false;
+                            IsLogOutButtonVisible = true;
+                            IsCustomSetVisible = true;
+                            LoginMsg = "User was added";
+                        }
                     }
                     else
                     {
-                        Debug.WriteLine("haslo sie nie zgadza");
-                        LoginMsg = "Niepoprawny login i/lub hasło";
-                        LogOut();
+                        if (BCrypt.Net.BCrypt.Verify(new System.Net.NetworkCredential(string.Empty, this.Password).Password
+                           , user.Credentials.password))
+                        {
+                            IsSignIn = true;
+                            SetLocalCategories(user.Preferences.categories);
+                            this.Search = user.Preferences.search;
+                            this.Limit = user.Preferences.limit;
+                            this.Domains = user.Preferences.domain;
+                            this.Language = user.Preferences.language;
+                            this.Limit = user.Preferences.limit;
+                            this.DateTo = user.Preferences.published_before;
+                            this.DateFrom = user.Preferences.published_after;
+                            this.Token = user.Credentials.token;
+                            IsSignInVisible = false;
+                            IsSignInButtonVisible = false;
+                            IsLogOutButtonVisible = true;
+                            IsCustomSetVisible = true;
+                        }
+                        else
+                        {
+                            Debug.WriteLine("incorrect password");
+                            LoginMsg = "Incorrect login or password";
+                            LogOut();
+                        }
                     }
                 }
+                this.Password = String.Empty;
+                ResultPanelVisibility = false;
             }
-            this.Password = String.Empty;
+            catch
+            {
+                return;
+            }
         }
         private void LogOut()
         {
@@ -812,24 +912,6 @@ namespace NewsApp.Core
             this.SelectedURL = null;
             this.IsWebBrowserVisible = false;
         }
-        public IMvxAsyncCommand DoAsyncWorkCommand => new MvxAsyncCommand(DoAsyncWorkAsync, () => true);
-        private Task DoAsyncWorkAsync()
-        {
-            // Async work logic here
-            //var result =  services.GetNews(requestModel).Result();
-            //return JsonReader<AllNews>.JsonDeserialize(result.Content);
-            return Task.FromResult(true);
-        }
-        public override async Task Initialize()
-        {
-            await base.Initialize();
-        }
-        //public async Task<AllNews.Rootobject> GetNews(IRequestModel requestModel)
-        //{
-        //    var result = services.GetNews(requestModel);
-        //    return JsonReader<AllNews.Rootobject>.JsonDeserialize(result.Content);
-        //}
-        public ObservableCollection<AllNewsModel> NewsList { get; set; } = new ObservableCollection<AllNewsModel>();
 
         private Random rand = new Random();
 
