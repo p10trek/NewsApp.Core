@@ -447,7 +447,8 @@ namespace NewsApp.Core
             {
                 _SelectedFav = value;
                 RaisePropertyChanged(() => SelectedFav);
-                ShowFavorite();
+                if(IsSignIn)
+                    ShowFavorite();
             }
         }
         private int _SelectedHist;
@@ -458,7 +459,8 @@ namespace NewsApp.Core
             {
                 _SelectedHist = value;
                 RaisePropertyChanged(() => SelectedHist);
-                ShowHistoricalSearch();
+                if (IsSignIn)
+                    ShowHistoricalSearch();
             }
         }
         private List<string> _HistoryList;
@@ -651,7 +653,7 @@ namespace NewsApp.Core
         {
             Debug.WriteLine(SelectedItem);
             ResultPanelVisibility = false;
-
+            IsFavViewMenuVisible = false;
             IsWebBrowserVisible = true;
             IsWebViewMenuVisible = true;
             _selectedTMP = SelectedItem;
@@ -659,13 +661,14 @@ namespace NewsApp.Core
         }
         private void ShowFavorite()
         {
-                Debug.WriteLine(SelectedItem);
-                ResultPanelVisibility = false;
-                IsFavListVisible = false;
-                IsFavViewMenuVisible = true;
-                IsWebBrowserVisible = true;
-                if (SelectedFav > -1)
-                    SelectedURL = new Uri(FavoritesList[SelectedFav]);
+            IsWebViewMenuVisible = false;
+            Debug.WriteLine(SelectedItem);
+            ResultPanelVisibility = false;
+            IsFavListVisible = false;
+            IsFavViewMenuVisible = true;
+            IsWebBrowserVisible = true;
+            if (SelectedFav > -1)
+                SelectedURL = new Uri(FavoritesList[SelectedFav]);
         }
         private void BackToList()
         {
@@ -892,6 +895,7 @@ namespace NewsApp.Core
             this.Language = String.Empty;
             this.Login = String.Empty;
             this.Password = String.Empty;
+            this.Token = String.Empty;
             this.Politics = false;
             this.Science = false;
             this.Search = String.Empty;
@@ -908,9 +912,19 @@ namespace NewsApp.Core
             this.IsASearchVisible = false;
             this.IsPreferencesVisible = false;
             this.IsSignInVisible = true;
-            this.NewsList.Clear();
+            if(this.NewsList!=null)
+                this.NewsList.Clear();
             this.SelectedURL = null;
             this.IsWebBrowserVisible = false;
+            this.ResultPanelVisibility = false;
+            if (this.FavoritesList != null)
+                this.FavoritesList.Clear();
+            if (this.HistoryList != null)
+                this.HistoryList.Clear();
+            SelectedURL = new Uri("about:blank");
+            IsFavListVisible = false;
+            IsHistoryListVisible = false;
+            ResultPanelVisibility = false;
         }
 
         private Random rand = new Random();
